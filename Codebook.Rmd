@@ -1,0 +1,174 @@
+---
+title: "MLPH Final Project: Codebook"
+author: "Rophence Ojiambo"
+geometry: top=1.54cm, bottom=1.94cm, left=1.54cm, right=1.54cm
+format:
+  pdf:
+    include-in-header:
+      text: |
+        \usepackage{amsmath} 
+        \usepackage{fvextra}
+        \usepackage{pdflscape}     
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+        \DefineVerbatimEnvironment{OutputCode}{Verbatim}{breaklines,commandchars=\\\{\}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warnings = FALSE, fig.align = 'center',  eval = TRUE)
+```
+
+
+```{r, echo=FALSE}
+# Load required libraries
+
+library(kableExtra)
+
+
+# Create complete code book data frame
+codebook <- data.frame(Variable = c(
+    "AGE", "SEX", "INF_ANAM", "STENOK_AN", "FK_STENOK", "IBS_POST",
+    "GB", "SIM_GIPERT", "DLIT_AG", "ZSN_A", "nr_11", "nr_01", "nr_02",
+    "nr_03", "nr_04", "nr_07", "nr_08", "np_01", "np_04", "np_05",
+    "np_07", "np_08", "np_09", "np_10", "endocr_01", "endocr_02",
+    "endocr_03", "zab_leg_01", "zab_leg_02", "zab_leg_03", "zab_leg_04",
+    "zab_leg_06", "S_AD_ORIT", "D_AD_ORIT", "O_L_POST", "K_SH_POST",
+    "MP_TP_POST", "SVT_POST", "GT_POST", "FIB_G_POST", "ant_im",
+    "lat_im", "inf_im", "post_im", "IM_PG_P", "ritm_ecg_p_01",
+    "ritm_ecg_p_02", "ritm_ecg_p_04", "ritm_ecg_p_06", "ritm_ecg_p_07",
+    "ritm_ecg_p_08", "n_r_ecg_p_01", "n_r_ecg_p_02", "n_r_ecg_p_03",
+    "n_r_ecg_p_04", "n_r_ecg_p_05", "n_r_ecg_p_06", "n_r_ecg_p_08",
+    "n_r_ecg_p_09", "n_r_ecg_p_10", "n_p_ecg_p_01", "n_p_ecg_p_03",
+    "n_p_ecg_p_04", "n_p_ecg_p_05", "n_p_ecg_p_06", "n_p_ecg_p_07",
+    "n_p_ecg_p_08", "n_p_ecg_p_09", "n_p_ecg_p_10", "n_p_ecg_p_11",
+    "n_p_ecg_p_12", "fibr_ter_01", "fibr_ter_02", "fibr_ter_03",
+    "fibr_ter_05", "fibr_ter_06", "fibr_ter_07", "fibr_ter_08",
+    "GIPO_K", "K_BLOOD", "GIPER_NA", "NA_BLOOD", "ALT_BLOOD",
+    "AST_BLOOD", "L_BLOOD", "ROE", "TIME_B_S", "R_AB_1_n", "R_AB_2_n",
+    "R_AB_3_n", "NA_KB", "NOT_NA_KB", "LID_KB", "NITR_S", "NA_R_1_n",
+    "NA_R_2_n", "NA_R_3_n", "NOT_NA_1_n", "NOT_NA_2_n", "NOT_NA_3_n",
+    "LID_S_n", "B_BLOK_S_n", "ANT_CA_S_n", "GEPAR_S_n", "ASP_S_n",
+    "TIKL_S_n", "TRENT_S_n"
+  ),
+  Meaning = c(
+    "Age in years",
+    "Gender (0=Male, 1=Female)",
+    "Quantity of myocardial infarctions in medical history",
+    "Exertional angina pectoris in medical history",
+    "Functional class of angina pectoris in last year",
+    "Coronary heart disease status before admission",
+    "Essential hypertension stage",
+    "Symptomatic hypertension",
+    "Duration of arterial hypertension",
+    "Chronic heart failure stage in medical history",
+    "History of arrhythmia",
+    "Premature atrial contractions in medical history",
+    "Premature ventricular contractions in medical history",
+    "Paroxysms of atrial fibrillation in medical history",
+    "Persistent atrial fibrillation in medical history",
+    "Ventricular fibrillation in medical history",
+    "Ventricular paroxysmal tachycardia in medical history",
+    "First-degree AV block in medical history",
+    "Third-degree AV block in medical history",
+    "LBBB (anterior branch) in medical history",
+    "Incomplete LBBB in medical history",
+    "Complete LBBB in medical history",
+    "Incomplete RBBB in medical history",
+    "Complete RBBB in medical history",
+    "Diabetes mellitus in medical history",
+    "Obesity in medical history",
+    "Thyrotoxicosis in medical history",
+    "Chronic bronchitis in medical history",
+    "Obstructive chronic bronchitis in medical history",
+    "Bronchial asthma in medical history",
+    "Chronic pneumonia in medical history",
+    "Pulmonary tuberculosis in medical history",
+    "Systolic blood pressure in ICU",
+    "Diastolic blood pressure in ICU",
+    "Pulmonary edema at ICU admission",
+    "Cardiogenic shock at ICU admission",
+    "Atrial fibrillation paroxysms at ICU admission",
+    "Supraventricular tachycardia paroxysms at ICU admission",
+    "Ventricular tachycardia paroxysms at ICU admission",
+    "Ventricular fibrillation at ICU admission",
+    "Anterior myocardial infarction (ECG changes in leads V1-V4)",
+    "Lateral myocardial infarction (ECG changes in leads V5-V6, I, AVL)",
+    "Inferior myocardial infarction (ECG changesin leads  III, AVF, II)",
+    "Posterior myocardial infarction (ECG changes V7-V9, reciprocity changes in leads V1-V3)",
+    "Right ventricular myocardial infarction",
+    "Sinus rhythm (HR 60-90) at admission",
+    "Atrial fibrillation rhythm at admission",
+    "Atrial rhythm at admission",
+    "Idioventricular rhythm at admission",
+    "Sinus tachycardia (HR >90) at admission",
+    "Sinus bradycardia (HR <60) at admission",
+    "Premature atrial contractions on admission ECG",
+    "Frequent premature atrial contractions on admission ECG",
+    "Premature ventricular contractions on admission ECG",
+    "Frequent premature ventricular contractions on admission ECG",
+    "Atrial fibrillation paroxysms on admission ECG",
+    "Persistent atrial fibrillation on admission ECG",
+    "Supraventricular tachycardia paroxysms on admission ECG",
+    "Ventricular tachycardia paroxysms on admission ECG",
+    "Ventricular fibrillation on admission ECG",
+    "Sinoatrial block on admission ECG",
+    "First-degree AV block on admission ECG",
+    "Type I Second-degree AV block (Wenckebach) on admission ECG",
+    "Type II Second-degree AV block (Mobitz II/Hay) on admission ECG",
+    "Third-degree AV block on admission ECG",
+    "LBBB (anterior branch) on admission ECG",
+    "LBBB (posterior branch) on admission ECG",
+    "Incomplete LBBB on admission ECG",
+    "Complete LBBB on admission ECG",
+    "Incomplete RBBB on admission ECG",
+    "Complete RBBB on admission ECG",
+    "Fibrinolytic therapy: Celiasum 750k IU",
+    "Fibrinolytic therapy: Celiasum 1m IU",
+    "Fibrinolytic therapy: Celiasum 3m IU",
+    "Fibrinolytic therapy: Streptase",
+    "Fibrinolytic therapy: Celiasum 500k IU",
+    "Fibrinolytic therapy: Celiasum 250k IU",
+    "Fibrinolytic therapy: Streptodecase 1.5m IU",
+    "Hypokalemia (<4 mmol/L)",
+    "Serum potassium level (mmol/L)",
+    "Hypernatremia (>150 mmol/L)",
+    "Serum sodium level (mmol/L)",
+    "Serum ALT level (IU/L)",
+    "Serum AST level (IU/L)",
+    "White blood cell count (billions/L)",
+    "ESR (Erythrocyte sedimentation rate) (mm/hr)",
+    "Time from CHD onset to hospital admission",
+    "Pain relapses in first 24 hours",
+    "Pain relapses on day 2",
+    "Pain relapses on day 3",
+    "Emergency team opioid use",
+    "Emergency team NSAID use",
+    "Emergency team lidocaine use",
+    "ICU liquid nitrate use",
+    "ICU opioid use in first 24 hours",
+    "ICU opioid use on day 2",
+    "ICU opioid use on day 3",
+    "ICU NSAID use in first 24 hours",
+    "ICU NSAID use on day 2",
+    "ICU NSAID use on day 3",
+    "ICU lidocaine use",
+    "ICU beta-blocker use",
+    "ICU calcium channel blocker use",
+    "ICU anticoagulants (heparin) use",
+    "ICU acetylsalicylic acid use",
+    "ICU Ticlid use",
+    "ICU Trental use"
+  )
+)
+
+# Generate formatted table
+kable(codebook, format = "latex", booktabs = TRUE, longtable = TRUE,
+      caption = "Codebook for Myocardial Infarction Complications Dataset (N = 1700)",
+      col.names = c("Variable Name", "Description"),
+      align = c("ll")) %>%
+  kable_styling(latex_options = c("hold_position", "repeat_header")) %>%
+  row_spec(0, bold = TRUE)
+```
+
+
+

@@ -1,0 +1,680 @@
+---
+title: "Stacked Ensemble Model for Predicting Fatal Myocardial Infarction Complications"
+subtitle: "<div style='text-align: center; font-size: 1.2rem;'>Rophence Ojiambo<br>May 5, 2025</div>"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+    theme: pulse
+    highlight-style: github
+    page-layout: full
+    title-block-align: center
+    self_contained: false
+    toc: false
+    include-in-header:
+      text: |
+        <style>
+          h1 { text-align: center; font-size: 3rem; }
+          .subtitle { text-align: center; margin-top: -10px; margin-bottom: 20px; }
+        </style>
+lightbox: true
+link-citations: true
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+bibliography: references.bib
+csl: apa-numeric-superscript-brackets.csl
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE,
+                      message = FALSE,
+                      warning = FALSE, 
+                      dpi = 300)
+```
+
+Myocardial infarction (MI) is a major cause of early in-hospital death, often due to complications within 72 hours of admission. This project uses a stacked ensemble machine learning approach to predict fatal MI complications by combining multiple algorithms through a meta-learner, improving accuracy and robustness over standalone model
+
+Below, you can navigate through the project components to explore the methodology, analysis, and findings.
+
+
+::: {.panel-tabset .tabset-scrollable}
+
+# Introduction
+
+## Overview
+
+Myocardial infarction (MI), marked by irreversible cardiac muscle necrosis due to prolonged ischemia, is a leading cause of early in-hospital mortality, with acute complications driving most deaths within 72 hours of admission [@anderson20132012; @kutty2013mechanical]. Early identification of high-risk patients is critical for timely intervention to improve outcomes. Machine learning (ML) enables predictive modeling by extracting patterns from clinical data, including demographics, biomarkers, and treatments [@bishop2006pattern]. However, standalone ML models often face limitations like overfitting or bias in heterogeneous datasets. Ensemble methods, particularly stacking, mitigate these issues by integrating predictions from diverse algorithms (e.g., bagging, boosting) through a meta-learner, optimizing accuracy and robustness [@dietterich2000ensemble; @wolpert1992stacked]. This approach leverages complementary strengths of base models, making it uniquely suited for predicting fatal MI complications where risk factors are multifactorial and interdependent.  
+
+## Problem Statement
+
+This project aims to use a stacked ensemble machine learning approach to predict fatal MI complications by combining multiple algorithms through a meta-learner, improving accuracy and robustness over standalone models.
+
+
+## Data Description
+
+
+The Myocardial Infarction Complications database comprises clinical records from 1,700 patients admitted to the Krasnoyarsk Interdistrict Clinical Hospital (Russia) between 1992 and 1995 and is publicly available via the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/Myocardial+Infarction+Complications). It includes 111 input features—ranging from demographics (age, sex, obesity status) and clinical history (prior MI episodes, hypertension stage, chronic heart failure classification) to ECG metrics (arrhythmias, bundle branch blocks, infarct localization), laboratory results (serum potassium, sodium, white blood cell count, erythrocyte sedimentation rate), and treatment variables (fibrinolytic therapies such as Celiasum and Streptase, plus medications including opioids, NSAIDs, and beta‑blockers)— and provide twelve distinct complication outcomes, of which we will focus exclusively on the binary lethal outcome variable (`LET_IS`) indicating lethal complications within 72 hours (15.94% mortality). The dataset exhibits moderate overall missingness (7.6%), although some features like serum CPK (`KFK_BLOOD`) have 99.76% missing and emergency blood pressure readings (`S_AD_KBRIG`, `D_AD_KBRIG`) exceed 50% missing, creating challenges of class imbalance and high missingness.
+
+## Proposed Approach & Methods
+
+The analysis will involve the following steps:
+
+1. **Data Cleaning**: We will remove high-missing (>50%) features (e.g., `KFK_BLOOD`), Impute continuous variables with mean, categorical variables with mode.  
+
+2. **Exploratory Data Analysis (EDA)**: We will explore the data and provide descriptive statistics (min, Q1, median, mean, Q3, max, SD) for continuous variables. Distributional assessments (histograms, density plots) and correlation analysis will be done to identify collinearities.
+   
+3. **Feature Selection**: We will use **LASSO regression** to shrink less important coefficients toward zero. Afterwards we will use the lasso reduced data set to perform **Recursive Feature Elimination (RFE)**, and iteratively further remove least important features based on model performance until an optimal subset is obtained .   
+
+4. **Address Class Imbalance**: We will use Synthetic minority over-sampling (SMOTE) to achieve a target over‑sampling ratio, followed by normalization and factor re‑encoding.
+   
+5. **Base Models**: We will train 6 algorithms with 10×10-fold cross-validation: Logistic Regression, k-Nearest Neighbors (kNN), Gradient Boosting Machine (GBM), Bagged Decision Trees, XGBoost, Random Forest. Hyperparameter Tuning will be done using repeated 10‑fold cross‑validation (CV) with grid search via `caret::trainControl` and `tuneGrid`.
+
+6. **Stacking Ensemble**: We will train base models in parallel using `caretList` and combine predictions via meta‑learners (Generalized Linear Model and Random Forest) using `caretStack`, leveraging repeated CV to generate out‑of‑fold predictions.  
+
+7. **Implementation Details**: We will use Parallel Processing (`doParallel`) with all but one core to accelerate model fitting. For Reproducibility, fixed seeds (`set.seed(123)`) will be set for all stochastic processes.
+
+
+## Evaluation Plan
+
+We’ll reserve a stratified 30% test set, compute key discrimination (AUC, accuracy, sensitivity, specificity, precision, F1‑score) and error‐rate metrics (false positive/negative rates) for each base learner and the stacked ensemble, and perform correlation analysis to assess diversity among base learners. Performance will be visualized with ROC curves, calibration plots, and variable importance from the metalearner
+
+
+<div style="text-align: center; margin-top: 20px;">
+  <a href="#top" style="text-decoration: none; background-color: #007BFF; color: white; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Back to Top</a>
+</div>
+
+
+# Packages Required
+
+Next, we load all the packages required for the analysis
+
+```{r}
+# Load required libraries
+library(tidyverse)     # Collection of packages for data manipulation and visualization
+library(dplyr)         # Core tidyverse package for data wrangling (select, filter, mutate, etc.)
+library(DT)            # Interactive HTML tables for data display
+library(naniar)        # Tools for exploring and visualizing missing data
+library(DataExplorer)  # Automated exploratory data analysis (EDA) reports
+library(GGally)        # Extensions to ggplot2 for correlation and pair plots
+library(ggplot2)       # Grammar of graphics for data visualization
+library(gridExtra)     # Arranges multiple ggplot2 plots in a grid
+library(glmnet)        # Fits LASSO and elastic net regularized regression models
+library(pROC)          # Plots ROC curves and computes AUC
+library(kableExtra)    # Creates styled HTML/PDF tables from data frames
+library(doParallel)    # Enables parallel processing for faster computations
+library(doRNG)         # Ensures reproducible results in parallel loops
+library(caret)         # Comprehensive machine learning framework (training, tuning, evaluation)
+library(themis)        # Adds methods for addressing class imbalance (e.g., SMOTE) in `recipes`
+library(recipes)       # Preprocessing pipeline for machine learning (e.g., normalization, encoding)
+library(xgboost)       # Efficient implementation of eXtreme Gradient Boosting
+library(gbm)           # Generalized Boosted Regression Models
+library(randomForest)  # Random Forest classifier and regression
+library(caretEnsemble) # Combines multiple caret models into an ensemble (e.g., stacking)
+```
+
+
+
+# Data Preparation
+
+First, we prepared the dataset code book can be found here.
+
+Next, we begin by importing the dataset, then conduct missing data analysis by identifying variables with missing values and visualizing those with greater 20% missingness using a bar chart. 
+
+```{r}
+# Access original data
+MI <- read.csv("Myocardial infarction complications Database.csv")
+
+################################################################################
+#################################  Data Cleaning ###############################
+################################################################################
+
+# Missing Data Analysis 
+
+# Calculate total NAs (15,974)
+total_nas <- sum(is.na(MI))
+
+# Get variables with >50% missing values
+high_missing <- miss_var_summary(MI) %>% 
+  filter(pct_miss > 20) %>%
+  arrange(desc(pct_miss))
+
+
+# Create the bar plot
+ggplot(high_missing, aes(x = reorder(variable, pct_miss), y = pct_miss)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 11 Variables with Highest Missingness",
+    x = "Variable",
+    y = "Percentage of Missing Data") +
+  theme_minimal() +
+  coord_flip()
+```
+
+
+
+We then proceed to clean the data by removing columns with excessive missingness, imputing missing values in continuous variables with the mean, and filling in nominal and ordinal variables with the mode. We then convert multiple binary and ordinal variables into factors with meaningful labels to improve interpretability. 
+
+
+```{r, results='hide'}
+### Data Cleaning Pipeline
+
+MI_clean <- MI %>%
+  # Remove ID column and variables with >50% NAs
+  dplyr:: select(-ID, -KFK_BLOOD, -IBS_NASL, -S_AD_KBRIG, -D_AD_KBRIG) %>%
+  
+  # Impute continuous variables with mean
+  mutate(across(c(AGE, S_AD_ORIT, D_AD_ORIT, K_BLOOD, NA_BLOOD, ALT_BLOOD, 
+                  AST_BLOOD, L_BLOOD, ROE),
+                ~if_else(is.na(.x), mean(.x, na.rm = TRUE), .x)))
+
+## Handle nominal and ordinal variables in MI_clean
+
+# Define mode function (identical to original)
+mode <- function(x) {
+  distinct <- na.omit(unique(x))
+  tab <- tabulate(match(x, distinct))
+  distinct[which.max(tab)]
+}
+
+# 1. First group: SEX to zab_leg_06 
+MI_clean <- MI_clean %>% 
+  mutate(across(SEX:zab_leg_06, ~replace_na(., mode(.))))
+
+# 2. Second group: O_L_POST to GIPO_K
+MI_clean <- MI_clean %>% 
+  mutate(across(O_L_POST:GIPO_K, ~replace_na(., mode(.))))
+
+# 3. Individual variable: GIPER_NA
+MI_clean$GIPER_NA[is.na(MI_clean$GIPER_NA)] <- mode(MI_clean$GIPER_NA)
+
+# 4. Third group: TIME_B_S to TRENT_S_n 
+MI_clean <- MI_clean %>% 
+  mutate(across(TIME_B_S:TRENT_S_n, ~replace_na(., mode(.))))
+# Numerical confirmation
+sum(is.na(MI_clean))  # Should be 0
+
+```
+Next, since our original dataset had 12 target outcome variables, we summarize them as below:
+
+```{r}
+# 1. Convert first 11 binary variables using a loop ----------------------------
+binary_vars <- c("FIBR_PREDS", "PREDS_TAH", "JELUD_TAH", "FIBR_JELUD",
+                 "A_V_BLOK", "OTEK_LANC", "RAZRIV", "DRESSLER", "ZSN",
+                 "REC_IM", "P_IM_STEN")
+
+for (var in binary_vars) {
+  MI_clean[[var]] <- factor(MI_clean[[var]],
+                          levels = c(0, 1),
+                          labels = c("No complication", "There is complication"))
+}
+
+# 2. Convert LET_IS to binary factor ------------------------------------------
+MI_clean$LET_IS <- factor(
+  ifelse(MI_clean$LET_IS == 0, 0, 1),  # Convert original codes to binary
+  levels = c(0, 1),
+  labels = c("Alive", "Dead")
+)
+
+# 3. Create unified summary table function -------------------------------------
+
+create_summary_table <- function(data) {
+  # Define naming convention for complications
+  complication_names <- c(
+    FIBR_PREDS = "Atrial fibrillation",
+    PREDS_TAH = "Supraventricular tachycardia",
+    JELUD_TAH = "Ventricular tachycardia",
+    FIBR_JELUD = "Ventricular fibrillation",
+    A_V_BLOK = "Third-degree AV block",
+    OTEK_LANC = "Pulmonary edema",
+    RAZRIV = "Myocardial rupture",
+    DRESSLER = "Dressler syndrome",
+    ZSN = "Chronic heart failure",
+    REC_IM = "Relapse of myocardial infarction",
+    P_IM_STEN = "Post-infarction angina",
+    LET_IS = "Lethal outcome (cause)"
+  )
+  
+  # Process all variables and sort by percentage
+  map_df(names(complication_names), function(var) {
+    data %>%
+      count(.data[[var]]) %>%
+      filter(.data[[var]] %in% c("There is complication", "Dead")) %>%
+      mutate(
+        Complication = complication_names[var],
+        numeric_fraction = (n/nrow(data)) * 100  # Temporary numeric column for sorting
+      ) %>%
+     dplyr:: select(Complication, `# Cases` = n, numeric_fraction)
+  }) %>%
+    arrange(desc(numeric_fraction)) %>%  # Sort by numeric value
+    mutate(Fraction = sprintf("%.2f%%", numeric_fraction)) %>%  # Format after sorting
+   dplyr:: select(-numeric_fraction)  # Remove temporary numeric column
+}
+
+# 4. Generate and print the sorted table --------------------------------------
+summary_table <- create_summary_table(MI_clean)
+
+kable(summary_table, align = "c", caption = "Complications Summary (Sorted by Prevalence)")
+
+```
+
+
+
+```{r}
+# Convert binary variables (assuming 0="No", 1="Yes" unless specified)
+binary_vars <- c(
+  "SEX", "SIM_GIPERT", "nr_11", "nr_01", "nr_02", "nr_03", "nr_04",
+  "nr_07", "nr_08", "np_01", "np_04", "np_05", "np_07", "np_08",
+  "np_09", "np_10", "endocr_01", "endocr_02", "endocr_03", "zab_leg_01",
+  "zab_leg_02", "zab_leg_03", "zab_leg_04", "zab_leg_06", "O_L_POST", "K_SH_POST",
+  "MP_TP_POST", "SVT_POST", "GT_POST", "FIB_G_POST", "IM_PG_P",
+  "ritm_ecg_p_01", "ritm_ecg_p_02", "ritm_ecg_p_04", "ritm_ecg_p_06",
+  "ritm_ecg_p_07", "ritm_ecg_p_08", "n_r_ecg_p_01", "n_r_ecg_p_02",
+  "n_r_ecg_p_03", "n_r_ecg_p_04", "n_r_ecg_p_05", "n_r_ecg_p_06",
+  "n_r_ecg_p_08", "n_r_ecg_p_09", "n_r_ecg_p_10", "n_p_ecg_p_01",
+  "n_p_ecg_p_03", "n_p_ecg_p_04", "n_p_ecg_p_05", "n_p_ecg_p_06",
+  "n_p_ecg_p_07", "n_p_ecg_p_08", "n_p_ecg_p_09", "n_p_ecg_p_10",
+  "n_p_ecg_p_11", "n_p_ecg_p_12", "fibr_ter_01", "fibr_ter_02",
+  "fibr_ter_03", "fibr_ter_05", "fibr_ter_06", "fibr_ter_07",
+  "fibr_ter_08", "GIPO_K", "GIPER_NA", "NA_KB", "NOT_NA_KB", "LID_KB",
+  "NITR_S", "LID_S_n", "B_BLOK_S_n", "ANT_CA_S_n", "GEPAR_S_n",
+  "ASP_S_n", "TIKL_S_n", "TRENT_S_n")
+
+# Special case for SEX (assuming 0=Male, 1=Female)
+MI_clean$SEX <- factor(MI_clean$SEX,
+                      levels = c(0, 1),
+                      labels = c("Male", "Female"))
+
+# Convert standard binary variables
+for (var in binary_vars[binary_vars != "SEX"]) {
+  MI_clean[[var]] <- factor(MI_clean[[var]],
+                           levels = c(0, 1),
+                           labels = c("No", "Yes"))
+}
+
+```
+
+
+
+
+
+```{r}
+# Convert ordinal variables with explicit labels
+ordinal_specs <- list(
+  # Core clinical variables
+  INF_ANAM = list(
+    levels = c(0, 1, 2, 3),
+    labels = c("0 infarctions", "1 infarction", 
+              "2 infarctions", "3+ infarctions")
+  ),
+  STENOK_AN = list(
+    levels = c(0, 1, 2, 3, 4, 5, 6),
+    labels = c("No angina", "1 episode", "2 episodes", "3 episodes",
+              "4 episodes", "5 episodes", "6+ episodes")
+  ),
+  FK_STENOK = list(
+    levels = c(0, 1, 2, 3, 4),
+    labels = c("No angina", "I FC", "II FC", "III FC", "IV FC")
+  ),
+  IBS_POST = list(
+    levels = c(0, 1, 2),
+    labels = c("No CHD", "Exertional angina", "Unstable angina")
+  ),
+  GB = list(
+    levels = c(0, 1, 2, 3),
+    labels = c("No hypertension", "Stage 1", "Stage 2", "Stage 3")
+  ),
+  DLIT_AG = list(
+    levels = c(0, 1, 2, 3, 4, 5, 6, 7),
+    labels = c("No hypertension", "1 year", "2 years", "3 years",
+              "4 years", "5 years", "6-10 years", "10+ years")
+  ),
+  ZSN_A = list(
+    levels = c(0, 1, 2, 3, 4),
+    labels = c("No CHF", "I stage", "IIA (right)", 
+              "IIA (left)", "IIB (both)")
+  ),
+  
+  # MI location variables
+  ant_im = list(
+    levels = 0:4,
+    labels = c("No infarct", "QRS normal", "QR-complex", 
+              "Qr-complex", "QS-complex")
+  ),
+  lat_im = list(
+    levels = 0:4,
+    labels = c("No infarct", "QRS normal", "QR-complex", 
+              "Qr-complex", "QS-complex")
+  ),
+  inf_im = list(
+    levels = 0:4,
+    labels = c("No infarct", "QRS normal", "QR-complex", 
+              "Qr-complex", "QS-complex")
+  ),
+  post_im = list(
+    levels = 0:4,
+    labels = c("No infarct", "QRS normal", "QR-complex", 
+              "Qr-complex", "QS-complex")
+  ),
+  
+  # Time variables
+  TIME_B_S = list(
+    levels = 1:9,
+    labels = c("<2h", "2-4h", "4-6h", "6-8h", "8-12h",
+              "12-24h", "1-2d", "2-3d", "3+d")
+  ),
+  
+  # Input features (1-24 hours after admission, 2- 48 hours after admission, 3-72 hours after admission)
+  R_AB_1_n = list(
+    levels = 0:3,
+    labels = c("No relapse", "1 relapse", "2 relapses", "3+ relapses")
+  ),
+  R_AB_2_n = list(
+    levels = 0:3,
+    labels = c("No relapse", "1 relapse", "2 relapses", "3+ relapses")
+  ),
+  R_AB_3_n = list(
+    levels = 0:3,
+    labels = c("No relapse", "1 relapse", "2 relapses", "3+ relapses")
+  ),
+  
+  # Medication use variables
+  NA_R_1_n = list(
+    levels = 0:4,
+    labels = c("No use", "1x", "2x", "3x", "4x+")
+  ),
+  NA_R_2_n = list(
+    levels = 0:3,
+    labels = c("No use", "1x", "2x", "3x")
+  ),
+  NA_R_3_n = list(
+    levels = 0:2,
+    labels = c("No use", "1x", "2x")
+  ),
+  NOT_NA_1_n = list(
+    levels = 0:4,
+    labels = c("No use", "1x", "2x", "3x", "4x+")
+  ),
+  NOT_NA_2_n = list(
+    levels = 0:3,
+    labels = c("No use", "1x", "2x", "3x")
+  ),
+  NOT_NA_3_n = list(
+    levels = 0:2,
+    labels = c("No use", "1x", "2x")
+  )
+)
+
+# Apply all ordinal conversions in one loop
+for (var in names(ordinal_specs)) {
+  MI_clean[[var]] <- factor(MI_clean[[var]],
+                           levels = ordinal_specs[[var]]$levels,
+                           labels = ordinal_specs[[var]]$labels,
+                           ordered = TRUE)
+}
+
+```
+
+
+Below is a preview of the cleaned `monthly_racial_data` dataset:
+
+
+```{r}
+# Display data table
+datatable(MI_clean, filter = "top")
+```
+
+### Aggregation of State-Level, COVID Racial, and Population Data
+
+To prepare the combined state-level COVID-19 racial dataset for analysis, first,the `filtered_states_data` used to create the `monthly_data` in step was filtered to include only data between April 12, 2020, and March 7, 2021. This date range corresponds to the period covered by the `covid_racial_data`. Similarly, regions such as Puerto Rico, Virgin Islands, Guam, Northern Mariana Islands, and American Samoa were excluded due to significant missing data and the lack of reliable population estimates. This step allowed the focus to remain on states with complete and consistent data. Next, the `monthly_us_state_data` was created by only retaining the latest available observation (based on date) for each state, year and month. State names in the `monthly_us_state_data` and `population_data` datasets were converted to standardized abbreviations. This ensured compatibility when merging datasets and avoided mismatches due to variations in naming conventions.
+
+
+```{r, results='hide'}
+
+
+```
+
+
+Secondly, the `monthly_state_data2` dataset was joined with the `monthly_racial_data` and `population_data`, to create the `combined_monthly_data` that has the integration of COVID-19 racial statistics with population metrics. To achieve this, the date column in these data sets were adjusted to reflect the last day of their respective months.
+
+
+```{r}
+
+
+```
+
+Thirdly, in the `combined_monthly_data`, Rates for cases, deaths, hospitalizations, and tests were calculated for each racial/ethnic group by dividing the respective counts by the population of that group and scaling to 100,000. These standardized rates facilitate meaningful comparisons across states and demographic groups.
+
+```{r}
+
+```
+
+The cleaned dataset, `combined_monthly_data`, includes variables for monthly cases, deaths, hospitalizations, and tests for various racial and ethnic groups, along with population data and calculated rates. Below is a preview of the dataset structure:
+
+
+Below is a preview of the cleaned `combined_monthly_data` dataset:
+
+```{r, eval=FALSE}
+datatable(combined_monthly_data, filter = "top")
+```
+
+<div style="text-align: center; margin-top: 20px;">
+  <a href="#top" style="text-decoration: none; background-color: #007BFF; color: white; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Back to Top</a>
+</div>
+
+
+# Exploratory Data Analysis
+
+
+This section provides a comprehensive overview of the datasets to understand its structure, identify patterns, and uncover initial insights. This process involves summarizing key variables, visualizing distributions, and examining relationships among predictors such as testing rates, hospitalization rates, and death rates across different racial groups.
+
+
+## National-Level Data Exploration
+
+
+The analysis of national-level COVID-19 data explores trends in cumulative cases, deaths, and rates per 100,000 population across the U.S. from March 2020 to early 2023, while highlighting major pandemic milestones. The cumulative cases and deaths exhibit sharp increases corresponding to key events, such as the declaration of a national emergency in March 2020, the administration of the first vaccines in December 2020, and the Delta and Omicron variant surges in early 2022, respectively. These events underscore critical turning points in both the spread of the virus and public health responses. The plots also capture the stabilization in cases and deaths following the widespread availability of vaccines and bivalent boosters.
+
+```{r, fig.height=6, fig.width=8}
+
+```
+
+
+
+```{r, fig.height=6, fig.width=10}
+
+
+```
+
+To compare the progression of case and death rates, a scaled area plot reveals the contrast between the two metrics. While case rates increased rapidly during major surges, death rates—scaled by a factor of 50 for visibility—remained comparatively lower but consistently present. 
+
+```{r, fig.height=8, fig.width=10}
+
+```
+
+
+## State-Level Data Exploration
+
+The state-level analysis of cumulative COVID-19 cases and deaths as of **March 23, 2023** highlights significant geographic variations across the United States. The U.S. map visually illustrates the total cases per state, with states like **California, Texas, and Florida** emerging as the hardest hit, recording over **10 million cumulative cases**. States with larger populations and urban centers generally reported higher case counts, reflecting the concentration of transmission and testing efforts in these areas.
+
+
+
+```{r}
+
+```
+
+
+Bar plots for both cumulative cases and deaths provide a more granular view of state-level disparities. **California, Texas, and Florida** lead in total cases, while **California** also ranks highest in cumulative deaths, followed closely by Texas and Florida. The visualizations underscore that states with high case numbers also experienced significant mortality, though the relative case-to-death ratios varied. These insights emphasize the importance of state-level responses, resource allocation, and public health measures in addressing regional disparities and mitigating COVID-19 impacts across the United States.
+
+
+```{r, fig.height=10, fig.width=15}
+
+```
+
+
+
+
+## Covid Racial Data Exploration
+
+This section highlights the cumulative trends of reported COVID-19 cases and deaths across racial groups over time. From April 2020 to March 2021, the data shows significant disparities in both cases and deaths among racial groups.
+
+
+1. **Cumulative Cases**: 
+
+   - The **White population** consistently recorded the highest cumulative case counts, increasing from **180,379** in April 2020 to over **10.5 million** by March 2021.  
+   - The **Black population** reported the second-highest case counts, followed by the **Asian** and **AIAN** populations.  
+   - Smaller case numbers were observed among the **NHPI** and **Multiracial** groups.  
+
+
+```{r}
+
+```
+
+2. **Cumulative Deaths**:
+
+   - Similar trends are observed for deaths, with the **White population** showing the highest cumulative deaths, rising from **19,661** in April 2020 to nearly **300,000** by March 2021.  
+   - The **Black population** also faced a significant burden of deaths, followed by the **Asian** and **AIAN** groups.  
+   - The death toll was relatively lower among the **NHPI** and **Multiracial** populations, yet still significant given their smaller population sizes.
+
+
+
+```{r}
+
+```
+
+It is essential to plot **rates** instead of raw counts when analyzing public health metrics like COVID-19 cases, deaths, hospitalizations, and testing because rates provide a more accurate and fair comparison across groups. Different racial or demographic groups have varying population sizes, and raw counts can misrepresent the true burden of disease if one group is significantly larger than another. By normalizing counts to a standard unit (e.g., per 100,000 people), rates adjust for population size differences, ensuring meaningful and equitable comparisons. Thus, for the next section, we compare rates of cases, deaths, hospitalizations and tests by racial groups.
+
+### Rates of Cases and Deaths
+
+
+The analysis of COVID-19 case and death rates by racial group provides insight into the disparities in disease burden among various populations. Cumulative case rates per 100,000 reveal significant differences, with Native Hawaiian and Pacific Islander (NHPI) and Black populations experiencing the highest case rates throughout the observed period. White and Asian groups demonstrated relatively lower case rates, while Multiracial and American Indian/Alaska Native (AIAN) groups had intermediate trends. These patterns suggest the uneven distribution of COVID-19 exposure and reporting across racial groups.
+
+```{r}
+
+```
+
+```{r, fig.width=8, fig.height=6}
+
+```
+
+When examining death rates per 100,000, the disparities are similarly pronounced, though with distinct patterns. The Black population exhibited the highest cumulative death rates, followed closely by NHPI and AIAN groups. White, Asian, and Multiracial groups showed relatively lower cumulative death rates. The trends observed underscore the disproportionate impact of COVID-19 on historically under-served and marginalized populations, likely driven by a combination of socioeconomic, healthcare access, and comorbidity factors. Visualizations further highlight these disparities over time, emphasizing the need for targeted public health interventions to mitigate these inequities.
+
+```{r}
+
+```
+
+
+```{r, fig.width=8, fig.height=6}
+
+```
+
+
+### Rates of Hospitalizations and Tests
+
+Similarly, the analysis below highlights cumulative monthly hospitalization and testing rates for COVID-19 across racial groups in the United States. The hospitalization rates (per 100,000) reveal significant disparities, with Black, NHPI (Native Hawaiian and Pacific Islander), and AIAN (American Indian/Alaska Native) populations consistently showing the highest rates throughout the observed period. By contrast, the Multiracial group had consistently lower hospitalization rates. 
+
+```{r, fig.width=9, fig.height=7}
+
+```
+
+
+Testing rates display a similar trend, with NHPI and Black groups recording the highest cumulative testing rates, while the Multiracial group remained significantly lower. These trends emphasize the disproportionate burden of hospitalizations and varied access or uptake of COVID-19 testing across racial groups, underscoring ongoing health inequities that may contribute to differential outcomes during the pandemic.
+
+
+```{r, fig.width=8, fig.height=6}
+
+```
+
+
+<blockquote style="font-size: 1.4em; font-style: italic; font-weight: bold; color: #555555; margin-top: 20px; margin-bottom: 20px; border-left: 4px solid #cccccc; padding-left: 15px;">
+“What are the relationships between COVID-19 case rates and key predictors: testing rates, hospitalization rates, and death rates across different racial groups, and do these predictors explain disparities in case rates among racial groups over time?”
+</blockquote>
+
+
+Finally, in this section, we conduct a linear regression analysis to identify and quantify the relationships between the **COVID-19 case rates** (dependent variable) and key predictors (independent variables) across different **racial groups** over time. The goal of this model is to understand:
+
+1. **How Testing Rates, Hospitalization Rates, and Death Rates Relate to Case Rates**:
+   - Does an increase in testing rates correlate with higher case rates?  
+   - Are hospitalization rates or death rates indicators of the severity or extent of infections?  
+2. **Differences Across Racial Groups**:
+   - By including `racial_group` as a categorical variable, the model accounts for differences in case rates across racial groups.  
+   - This allows us to see if certain racial groups are more impacted when adjusting for predictors like testing, hospitalization, and death rates.  
+
+**Model Specification**
+
+The linear regression model is specified as follows:
+
+$$
+\text{Case Rate} = \beta_0 + \beta_1 (\text{Testing Rate}) + \beta_2 (\text{Hospitalized Rate}) + \beta_3 (\text{Death Rate}) + \beta_4 (\text{Racial Group}) + \epsilon
+$$
+
+```{r}
+
+```
+
+
+The results of the linear regression model demonstrate that **testing rates**, **hospitalization rates**, and **death rates** are significant predictors of COVID-19 case rates, explaining over **94% of the variability** (Adjusted R-squared = 0.9416). A positive relationship was observed between testing rates and case rates, suggesting that increased testing identifies more COVID-19 cases, as expected. Testing is critical for case detection, particularly in underrepresented communities.. Similarly, higher hospitalization and death rates were associated with increased case rates. This strong and positive association may reflect the severity of COVID-19 cases where higher hospitalization rates correlate with increased case identification. It could also reflect a lagging relationship, where severe illness leads to more comprehensive testing.
+The significant association between death rates and cases rates underscores that higher death rates often occur alongside higher case rates. This trend could reflect regions with higher COVID-19 transmission or communities with limited access to early interventions.
+
+
+The racial group predictors estimate how COVID-19 case rates differ among racial groups relative to a reference category (AIAN).  Compared to the AIAN, **Multiracial**, **Asian**, and **Black communities** experienced notably higher case rates, possibly indicating systemic inequities that may stem from limited access to healthcare, socioeconomic vulnerabilities, and other social determinants of health.  While the **White** racial group had significant higher case rates,the disparity here may not be as pronounced as in some other racial groups. The **NHPI group** showed a lower case rate. This result contrasts with trends seen in other groups and may reflect differences in reporting, access to testing, or population size considerations.
+
+
+<div style="text-align: center; margin-top: 20px;">
+  <a href="#top" style="text-decoration: none; background-color: #007BFF; color: white; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Back to Top</a>
+</div>
+
+
+
+# Summary
+
+
+ 
+The COVID-19 pandemic exacerbated existing health disparities in the United States, disproportionately impacting racial and ethnic minority groups. This project aimed to investigate the differential burden of COVID-19 outcomes, including cases, deaths, hospitalizations, and testing rates, across racial and ethnic communities. 
+
+
+To address this problem, I analyzed national-level and state-level COVID-19 data obtained from [**The New York Times COVID-19 dataset**](https://github.com/nytimes/covid-19-data), combined with the [**COVID Racial Data Tracker**](https://covidtracking.com/race) and population estimates from the [**American Community Survey (ACS) Demographic and Housing 5-Year Estimates (2019)**](https://data.census.gov/table/ACSDP5Y2019.DP05). The analysis involved the following steps: 
+
+
+1. **Data Preparation**: Cleaning, merging, and aggregating the datasets at state and racial group levels to calculate cumulative monthly rates (per 100,000 population) for cases, deaths, hospitalizations, and tests.  
+2. **Exploratory Data Analysis**: Visualizing and summarizing trends to identify disparities across racial groups.  
+3. **Regression Analysis**: A multiple linear regression model examined relationships between case rates and key predictors—testing rates, hospitalization rates, and death rates—while accounting for racial group differences.  
+
+**Key Insights**
+
+The analysis revealed significant racial disparities in COVID-19 outcomes: 
+
+- **Cases**: The White population had the highest cumulative case counts, but Native Hawaiian/Pacific Islander (NHPI) and Black groups exhibited the highest case rates per 100,000.  
+- **Deaths**: The Black population experienced the highest death rates, followed by NHPI and AIAN groups, highlighting a greater burden of severe outcomes in these communities.  
+- **Hospitalizations**: Hospitalization rates were highest among Black, NHPI, and AIAN populations, reflecting unequal access to early interventions and preventive care.  
+- **Testing**: While NHPI and Black groups had the highest cumulative testing rates, Multiracial populations consistently showed lower testing rates, raising concerns about access to testing resources.  
+- **Regression Analysis**: Testing rates, hospitalization rates, and death rates significantly predicted case rates. Disparities were also observed across racial groups, with the AIAN group serving as the reference category.
+
+**Implications**
+
+These findings highlight the disproportionate burden of COVID-19 on historically marginalized communities. The results emphasize the need for:  
+- **Equitable Resource Allocation**: Increasing access to testing, vaccines, and healthcare services in vulnerable populations.  
+- **Targeted Interventions**: Addressing the underlying social determinants of health, such as housing conditions, employment risks, and healthcare access, to reduce disparities.  
+- **Improved Data Reporting**: Ensuring consistent and disaggregated data collection across racial and ethnic groups to monitor and address inequities effectively.  
+
+**Limitations and Future Directions**  
+
+Despite the insights provided, the analysis has several limitations: 
+
+1. **Data Availability**: Inconsistent reporting across states and racial groups led to missing data, particularly in smaller populations (e.g., Multiracial, NHPI). Future studies could incorporate imputation techniques or use additional data sources as the racial data was limited to April 12, 2020 to March 7, 2021.  
+2. **Population Estimates**: The analysis relied on ACS 2019 population estimates, which may not fully reflect changes in population dynamics during the pandemic. Using updated population data could improve accuracy.  
+3. **Causality**: The regression analysis identifies associations but does not imply causal relationships. 
+4. **Granularity**: This analysis focused on state-level data, which may mask local variations within counties or cities. Incorporating finer geographic data such as the use of the county-level COVID-19 data could provide more nuanced insights.  
+
+Future work could build on this analysis by examining the role of socioeconomic factors (e.g., household income, education levels, poverty rates), vaccination rates, and comorbidities in exacerbating or mitigating COVID-19 disparities. Addressing these limitations will enhance our understanding of health inequities and inform more effective public health strategies.
+
+
+<blockquote style="font-size: 1.8em; font-style: italic; font-weight: bold; color: #555555; margin-top: 20px; margin-bottom: 20px; border-left: 4px solid #cccccc; padding-left: 15px;">
+All codes and datasets for this project can be found at my [GitHub Repository](https://github.com/rophenceojiambo/COVID-19).
+</blockquote>
+
+# References
+
+<div id= "refs"></div>
+
+
+:::
