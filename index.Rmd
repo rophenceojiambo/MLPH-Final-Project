@@ -118,7 +118,7 @@ library(caretEnsemble) # Combines multiple caret models into an ensemble (e.g., 
 
 # Data Preparation
 
-For the data preparation, we first prepared the dataset [codebook](https://archive.ics.uci.edu/ml/datasets/Myocardial+Infarction+Complications) which contains detailed description of the variables in our dataset.
+For the data preparation, we first prepared the dataset [codebook](https://github.com/rophenceojiambo/MLPH-Final-Project/blob/main/Codebook.pdf) which contains detailed description of the variables in our dataset.
 
 ## Loading and visualizing Missing data
 
