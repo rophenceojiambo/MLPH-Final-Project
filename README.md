@@ -25,7 +25,6 @@ Parallel processing and fixed random seeds are used to ensure efficiency and rep
 
 ## Key Insights
 
-The analysis revealed significant racial disparities in COVID-19 outcomes: 
 
 - Stacked ensemble models, particularly Stacked Random Forest, achieved the highest predictive performance, with strong accuracy (87.7%) and sensitivity (97.4%) on the test set. 
 - While individual models like XGBoost and Random Forest performed well in training, they showed lower sensitivity on test data, highlighting potential overfitting. 

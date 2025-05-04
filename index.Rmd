@@ -28,7 +28,7 @@ csl: apa-numeric-superscript-brackets.csl
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE,
+knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       warning = FALSE, 
                       dpi = 300)
@@ -88,7 +88,7 @@ We’ll reserve a stratified 30% test set, compute key discrimination (AUC, accu
 
 # Packages Required
 
-Next, we load all the packages required for the analysis
+The code below loads all the packages required for the analysis
 
 ```{r}
 # Load required libraries
@@ -118,7 +118,9 @@ library(caretEnsemble) # Combines multiple caret models into an ensemble (e.g., 
 
 # Data Preparation
 
-First, we prepared the dataset code book can be found here.
+For the data preparation, we first prepared the dataset [codebook](https://archive.ics.uci.edu/ml/datasets/Myocardial+Infarction+Complications) which contains detailed description of the variables in our dataset.
+
+## Loading and visualizing Missing data
 
 Next, we begin by importing the dataset, then conduct missing data analysis by identifying variables with missing values and visualizing those with greater 20% missingness using a bar chart. 
 
@@ -151,7 +153,9 @@ ggplot(high_missing, aes(x = reorder(variable, pct_miss), y = pct_miss)) +
   coord_flip()
 ```
 
+The bar plot illustrates the top 11 variables in the dataset with the highest percentages of missing data. The variable `KFK_BLOOD` exhibits the most significant missingness, with nearly 100% of its values absent, followed closely by `IBS_NASL`, which also approaches complete missingness. Variables such as `S_AD_KBRIG` and `D_AD_KBRIG` have around 75% missing data, indicating considerable data sparsity. Mid-range missingness is observed in variables like `NOT_NA_KB`, `LID_KB`, and `NA_KB`, each with approximately 50% of their values missing. On the lower end of the top 11, variables including `NA_BLOOD`, `GIPER_NA`, `K_BLOOD`, and `GIPO_K` have missingness levels closer to 25%. 
 
+## Data preprocessing
 
 We then proceed to clean the data by removing columns with excessive missingness, imputing missing values in continuous variables with the mean, and filling in nominal and ordinal variables with the mode. We then convert multiple binary and ordinal variables into factors with meaningful labels to improve interpretability. 
 
@@ -194,10 +198,6 @@ MI_clean <- MI_clean %>%
 # Numerical confirmation
 sum(is.na(MI_clean))  # Should be 0
 
-```
-Next, since our original dataset had 12 target outcome variables, we summarize them as below:
-
-```{r}
 # 1. Convert first 11 binary variables using a loop ----------------------------
 binary_vars <- c("FIBR_PREDS", "PREDS_TAH", "JELUD_TAH", "FIBR_JELUD",
                  "A_V_BLOK", "OTEK_LANC", "RAZRIV", "DRESSLER", "ZSN",
@@ -254,13 +254,6 @@ create_summary_table <- function(data) {
 # 4. Generate and print the sorted table --------------------------------------
 summary_table <- create_summary_table(MI_clean)
 
-kable(summary_table, align = "c", caption = "Complications Summary (Sorted by Prevalence)")
-
-```
-
-
-
-```{r}
 # Convert binary variables (assuming 0="No", 1="Yes" unless specified)
 binary_vars <- c(
   "SEX", "SIM_GIPERT", "nr_11", "nr_01", "nr_02", "nr_03", "nr_04",
@@ -292,13 +285,6 @@ for (var in binary_vars[binary_vars != "SEX"]) {
                            labels = c("No", "Yes"))
 }
 
-```
-
-
-
-
-
-```{r}
 # Convert ordinal variables with explicit labels
 ordinal_specs <- list(
   # Core clinical variables
@@ -416,7 +402,22 @@ for (var in names(ordinal_specs)) {
 ```
 
 
-Below is a preview of the cleaned `monthly_racial_data` dataset:
+## Summary of Outcome variables
+
+Next, since our original dataset had 12 target outcome variables, we summarize them as below:
+
+
+
+```{r}
+kable(summary_table, align = "c", caption = "Complications Summary (Sorted by Prevalence)")
+```
+
+Out of the 12 outcomes, we chose to proceed with Lethal Outcome (cause) as our target variable, this highly imbalanced, with only 15.94% prevalence.
+
+
+## Overview of cleaned data
+
+Below is a preview of the cleaned myocardial infarction complications dataset:
 
 
 ```{r}
@@ -424,39 +425,7 @@ Below is a preview of the cleaned `monthly_racial_data` dataset:
 datatable(MI_clean, filter = "top")
 ```
 
-### Aggregation of State-Level, COVID Racial, and Population Data
 
-To prepare the combined state-level COVID-19 racial dataset for analysis, first,the `filtered_states_data` used to create the `monthly_data` in step was filtered to include only data between April 12, 2020, and March 7, 2021. This date range corresponds to the period covered by the `covid_racial_data`. Similarly, regions such as Puerto Rico, Virgin Islands, Guam, Northern Mariana Islands, and American Samoa were excluded due to significant missing data and the lack of reliable population estimates. This step allowed the focus to remain on states with complete and consistent data. Next, the `monthly_us_state_data` was created by only retaining the latest available observation (based on date) for each state, year and month. State names in the `monthly_us_state_data` and `population_data` datasets were converted to standardized abbreviations. This ensured compatibility when merging datasets and avoided mismatches due to variations in naming conventions.
-
-
-```{r, results='hide'}
-
-
-```
-
-
-Secondly, the `monthly_state_data2` dataset was joined with the `monthly_racial_data` and `population_data`, to create the `combined_monthly_data` that has the integration of COVID-19 racial statistics with population metrics. To achieve this, the date column in these data sets were adjusted to reflect the last day of their respective months.
-
-
-```{r}
-
-
-```
-
-Thirdly, in the `combined_monthly_data`, Rates for cases, deaths, hospitalizations, and tests were calculated for each racial/ethnic group by dividing the respective counts by the population of that group and scaling to 100,000. These standardized rates facilitate meaningful comparisons across states and demographic groups.
-
-```{r}
-
-```
-
-The cleaned dataset, `combined_monthly_data`, includes variables for monthly cases, deaths, hospitalizations, and tests for various racial and ethnic groups, along with population data and calculated rates. Below is a preview of the dataset structure:
-
-
-Below is a preview of the cleaned `combined_monthly_data` dataset:
-
-```{r, eval=FALSE}
-datatable(combined_monthly_data, filter = "top")
-```
 
 <div style="text-align: center; margin-top: 20px;">
   <a href="#top" style="text-decoration: none; background-color: #007BFF; color: white; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Back to Top</a>
@@ -469,154 +438,403 @@ datatable(combined_monthly_data, filter = "top")
 This section provides a comprehensive overview of the datasets to understand its structure, identify patterns, and uncover initial insights. This process involves summarizing key variables, visualizing distributions, and examining relationships among predictors such as testing rates, hospitalization rates, and death rates across different racial groups.
 
 
-## National-Level Data Exploration
+## Exploration of cleaned data
+
+As we observed below, our cleaned data now has 0% missingness, with 92.4% of the variables being of discrete type while 7.6% being continuous.
+
+```{r}
+# Data exploration
+plot_intro(MI_clean)
+```
+## Distribution of Discrete variables
+
+Below is the distribution of all discrete variables in our dataset.
+
+```{r}
+# Distribution of discrete variables
+plot_bar(MI_clean)
+
+```
+
+## Distribution of Continuous Variables
+
+The table below shows the summary descriptive statistics of our continuous variables
+
+```{r}
+################################################################################
+########### Exploratory Data Analysis for Continuous Variables #################
+################################################################################
+
+# Generate custom descriptive statistics table
+desc_stats <- MI_clean %>%
+ dplyr:: select(AGE, S_AD_ORIT, D_AD_ORIT, K_BLOOD, NA_BLOOD, ALT_BLOOD, AST_BLOOD,
+         L_BLOOD, ROE) %>%
+  sapply(function(x) {
+    stats <- summary(x)
+    c(Min = stats["Min."], Q1 = stats["1st Qu."], Median = stats["Median"],
+      Mean = stats["Mean"], Q3 = stats["3rd Qu."], Max = stats["Max."],
+      SD = sd(x, na.rm = TRUE))}) %>%  
+  t() %>%  
+  as.data.frame() %>%
+  mutate(across(where(is.numeric), \(x) round(x, 2)))  
+
+# Create meaningful labels
+rownames(desc_stats) <- c("Age (years)", "Systolic Blood Pressure ICU",
+  "Diastolic Blood Pressure ICU", "Serum Potassium Content (mmol/L",
+  "Serum sodium content (mmol/L)",
+  "serum AIAT Content (IU/L)", "Serum AsAT Content (IU/L)",
+  "White blood cell count (billion/L",
+  "Erythrocyte Sedimentation Rate (MM)")
+
+colnames(desc_stats) <- c("Minimum", "1st Quartile", "Median", "Mean", 
+                          "3rd Quartile", "Maximum", "Standard Deviation")
+
+# Create formatted table
+desc_table <- desc_stats %>%
+  kable(caption = "Descriptive Statistics for Continuous Clinical Variables",
+    align = 'c', booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position", "striped"), 
+                full_width = FALSE)
+
+# Display table
+desc_table
+
+```
+
+Below are histograms showing the distributions of the continuous variables
 
 
-The analysis of national-level COVID-19 data explores trends in cumulative cases, deaths, and rates per 100,000 population across the U.S. from March 2020 to early 2023, while highlighting major pandemic milestones. The cumulative cases and deaths exhibit sharp increases corresponding to key events, such as the declaration of a national emergency in March 2020, the administration of the first vaccines in December 2020, and the Delta and Omicron variant surges in early 2022, respectively. These events underscore critical turning points in both the spread of the virus and public health responses. The plots also capture the stabilization in cases and deaths following the widespread availability of vaccines and bivalent boosters.
+```{r, fig.width=10, fig.height=10, message=FALSE}
+# Create title mapping
+title_mapping <- c(
+  "AGE" = "Age (years)",
+  "S_AD_ORIT" = "Systolic Blood Pressure ICU (mmHg)",
+  "D_AD_ORIT" = "Diastolic Blood Pressure ICU (mmHg)",
+  "K_BLOOD" = "Serum Potassium Content (mmol/L)",
+  "NA_BLOOD" = "Serum Sodium Content (mmol/L)",
+  "ALT_BLOOD" = "Serum ALT Content (IU/L)",
+  "AST_BLOOD" = "Serum AST Content (IU/L)",
+  "L_BLOOD" = "White Blood Cell Count (10⁹/L)",
+  "ROE" = "Erythrocyte Sedimentation Rate (mm/hr)"
+)
 
-```{r, fig.height=6, fig.width=8}
+# Modified plotting function
+create_plot <- function(var) {
+  ggplot(MI_clean, aes(x = .data[[var]])) +
+    geom_histogram(aes(y = after_stat(density)), color = "black", fill = "white",
+                   bins = 30) +
+    geom_density(fill = "blue", alpha = 0.5) +
+    labs(title = title_mapping[var],
+         x = "", y = "Density") +
+    theme_minimal(base_size = 10) +
+    theme(plot.title = element_text(size = 10, face = "bold"),
+          axis.text = element_text(size = 8))
+}
+
+# Create plots with proper titles
+continuous_vars <- names(title_mapping)
+plots <- lapply(continuous_vars, create_plot)
+
+# Display ONLY plots using base grid package
+grid::grid.newpage()
+grid::grid.draw(gridExtra::arrangeGrob(grobs = plots, ncol = 3))
 
 ```
 
 
+The panel of histograms and density plots provides an overview of the distributions for several clinical and biochemical variables. These variables exhibit diverse scales, units, and distribution shapes. For example, **Age**, **Systolic**, and **Diastolic Blood Pressure** show relatively symmetric or slightly skewed distributions, while **biochemical markers** such as **Serum Potassium**, **Sodium**, **ALT**, **AST**, and **Erythrocyte Sedimentation Rate** are clearly right-skewed, with long tails extending toward higher values. Variables like **White Blood Cell Count** and **Erythrocyte Sedimentation Rate** also have varying ranges, further emphasizing the heterogeneity in scale.
 
-```{r, fig.height=6, fig.width=10}
+Because of these differences in scale and distribution, **standardization** (e.g., z-score normalization) is essential before applying many machine learning algorithms, especially those sensitive to the magnitude of input features (like k-nearest neighbors, logistic regression, or neural networks). Standardizing the data helps ensure that variables contribute equally to distance calculations or model weights, improves convergence in optimization routines, and can reduce bias caused by dominant features with larger numeric ranges. 
 
-
-```
-
-To compare the progression of case and death rates, a scaled area plot reveals the contrast between the two metrics. While case rates increased rapidly during major surges, death rates—scaled by a factor of 50 for visibility—remained comparatively lower but consistently present. 
-
-```{r, fig.height=8, fig.width=10}
-
-```
-
-
-## State-Level Data Exploration
-
-The state-level analysis of cumulative COVID-19 cases and deaths as of **March 23, 2023** highlights significant geographic variations across the United States. The U.S. map visually illustrates the total cases per state, with states like **California, Texas, and Florida** emerging as the hardest hit, recording over **10 million cumulative cases**. States with larger populations and urban centers generally reported higher case counts, reflecting the concentration of transmission and testing efforts in these areas.
-
+## Correlation heatmap of Continous variables
 
 
 ```{r}
+plot_correlation(MI_clean[, c(continuous_vars)])
+```
+
+The correlation heat map reveals that most clinical and biochemical features exhibit weak or negligible linear relationships, with the exception of a few notable pairs. Systolic and diastolic blood pressure in the ICU (`S_AD_ORIT` and `D_AD_ORIT`) show a strong positive correlation (r = 0.86), reflecting their physiological linkage. Similarly, `ALT_BLOOD` and `AST_BLOOD`, are moderately correlated (r = 0.52). Other features such as age, serum potassium, sodium, white blood cell count, and erythrocyte sedimentation rate (ROE) display minimal correlation with each other. Notably, age has a weak positive correlation with ROE (r = 0.2), possibly reflecting age-related inflammation. These findings indicate low multicollinearity among most features.
+
+## Additional Pre-processsing
+
+The dataset was randomly partitioned into training and testing subsets using `createDataPartition` to preserve the proportion of the binary outcome variable, `LET_IS`. Seventy percent of the data was allocated to the training set, and the remaining 30% to the test set. Following the partitioning, only the relevant predictor variables (columns 1 to 107) and the outcome variable (column 119) were retained for analysis. Continuous variables in the training set were standardized using z-score normalization, where each variable was transformed to have a mean of zero and a standard deviation of one based on statistics calculated from the training data. This standardization was performed to ensure comparability across features and improve model performance.
+
+```{r, results='hide'}
+# Set seed for reproducibility
+set.seed(123)  
+
+# Create data partition
+train_index <- createDataPartition(y = MI_clean$LET_IS, p = 0.7, list = FALSE)
+
+# Create train and test sets
+train_data <- MI_clean[train_index, ]
+test_data  <- MI_clean[-train_index, ]
+
+# Verify dimensions
+prop.table(table(train_data$LET_IS)) 
+#     Alive      Dead 
+# 0.8404702    0.1595298 
+
+prop.table(table(train_data$LET_IS))
+
+# Alive      Dead 
+# 0.8404702  0.1595298 
+
+# 1. Data Preparation -----------------------------------------------------
+# Subset data (assuming LET_IS is in column 119)
+train_data <- train_data[, c(1:107, 119)]
+
+# 2. Standardization ------------------------------------------------------
+# For continuous variables
+
+# Calculate standardization parameters from training data
+mean_sd <- train_data %>%
+  summarise(across(all_of(continuous_vars), 
+                  list(mean = mean, sd = sd)))
+
+# Apply standardization
+train_data_std <- train_data %>%
+  mutate(across(all_of(continuous_vars), 
+               ~(.x - mean_sd[[paste0(cur_column(), "_mean")]]) / 
+                 mean_sd[[paste0(cur_column(), "_sd")]]))
+```
+
+## Feature Selection
+
+
+To identify the most predictive features for the binary outcome `LET_IS`, a two-step feature selection process was employed. First, a Least Absolute Shrinkage and Selection Operator (LASSO) regression was conducted using the `glmnet` package. Predictor variables were extracted from the standardized training dataset using the model matrix, excluding the intercept. A 10-fold cross-validation procedure, with the area under the curve (AUC) as the performance metric, was used to determine the optimal penalty parameter (`lambda.min`). Variables with non-zero coefficients in the LASSO model were selected, yielding a set of 39 candidate predictors.
+
+Next, recursive feature elimination (RFE) was applied to this reduced feature set to further refine the selection. The RFE procedure was implemented using random forest functions (`rfFuncs`) and performed within a repeated 10-fold cross-validation framework (5 repeats). Parallel processing was employed to improve computational efficiency, utilizing all but one of the available CPU cores. The final RFE model identified the optimal subset features based on model performance across varying subset sizes. The results of the RFE procedure were saved for further evaluation.
+
+
+```{r, eval=FALSE}
+################################################################################
+############################### FEATURE SELECTION ##############################
+################################################################################
+
+# 3. Model Setup ----------------------------------------------------------
+x <- model.matrix(LET_IS ~ ., data = train_data_std)[,-1]
+y <- train_data_std$LET_IS  # Binary response
+
+# 4. LASSO Execution ------------------------------------------------------
+set.seed(123)
+cv <- cv.glmnet(x, y, 
+               alpha = 1, 
+               family = "binomial", 
+               type.measure = "auc",
+               standardize = FALSE)  
+
+lasso_model <- glmnet(x, y, 
+                     alpha = 1, 
+                     family = "binomial",
+                     lambda = cv$lambda.min, 
+                     standardize = FALSE)
+
+# 5. Feature Selection ----------------------------------------------------
+lassoVarImp <- varImp(lasso_model, scale = FALSE, lambda = cv$lambda.min)
+varsSelected <- rownames(lassoVarImp)[which(lassoVarImp$Overall != 0)]
+
+original_selected_vars <- c(
+  "AGE", "SEX", "INF_ANAM", "STENOK_AN", "FK_STENOK", "IBS_POST", "GB",
+  "DLIT_AG", "ZSN_A", "endocr_01", "endocr_02", "zab_leg_02", "S_AD_ORIT", 
+  "D_AD_ORIT", "K_SH_POST", "ant_im", "lat_im", "inf_im", "IM_PG_P", 
+  "ritm_ecg_p_01", "ritm_ecg_p_02", "n_r_ecg_p_04", "n_p_ecg_p_03", 
+  "n_p_ecg_p_12", "K_BLOOD", "ALT_BLOOD", "AST_BLOOD", "L_BLOOD", "ROE", 
+  "TIME_B_S", "R_AB_1_n", "NA_KB", "NOT_NA_KB", "NITR_S", "NA_R_1_n", 
+  "B_BLOK_S_n", "ANT_CA_S_n", "ASP_S_n", "TRENT_S_n")
+
+length(original_selected_vars) # [1] 39
+
+# 5. Create Lasso Reduced Dataset ----------------------------------------------
+# Include only selected features and target
+train_lasso_reduced <- train_data_std %>%  # Using standardized data
+  dplyr:: select(all_of(original_selected_vars), LET_IS)
+
+# 6. RFE -----------------------------------------------------------------------
+x_rfe <- train_lasso_reduced %>% dplyr:: select(-LET_IS) %>% as.data.frame()
+y_rfe <- train_lasso_reduced$LET_IS
+
+
+# 7. Parallel RFE Setup --------------------------------------------------------
+# Start timing
+start_time <- Sys.time()
+
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+registerDoRNG(seed = 123)
+
+control <- rfeControl(functions = rfFuncs,
+                     method = "repeatedcv",
+                     repeats = 5,
+                     number = 10,
+                     allowParallel = TRUE)
+
+# 8. Run RFE -------------------------------------------------------------------
+# Run RFE with timing
+rfe_time <- system.time(
+  result_rfe <- rfe(x = x_rfe, y = y_rfe, sizes = c(1:39), rfeControl = control))
+  
+# Cleanup
+stopCluster(cl)
+
+# Print timing results
+end_time <- Sys.time()
+cat("\nTotal elapsed time:", format(end_time - start_time, digits = 3), "\n")
+print(rfe_time)
+
+# 9. Results -------------------------------------------------------------------
+# Save entire RFE result object
+saveRDS(result_rfe, "rfe_results.rds")
 
 ```
 
+### Accuracy plot for feature selection
 
-Bar plots for both cumulative cases and deaths provide a more granular view of state-level disparities. **California, Texas, and Florida** lead in total cases, while **California** also ranks highest in cumulative deaths, followed closely by Texas and Florida. The visualizations underscore that states with high case numbers also experienced significant mortality, though the relative case-to-death ratios varied. These insights emphasize the importance of state-level responses, resource allocation, and public health measures in addressing regional disparities and mitigating COVID-19 impacts across the United States.
+As shown below, the first plots illustrate how model **Accuracy** and **Kappa statistics** varied as the number of variables increased. Both metrics peaked around 22 variables, as highlighted by the blue dot, suggesting this was the optimal number of predictors to balance performance and parsimony. 
 
+```{r}
+result_rfe <- readRDS("rfe_results.rds")
 
-```{r, fig.height=10, fig.width=15}
+# Print the selected features
+final_vars <- predictors(result_rfe)
 
+# Print the results visually for accuracy
+ggplot(data = result_rfe, metric = "Accuracy") + theme_bw()
 ```
 
+### Kappa plot for feature selection
 
+```{r}
+# Print the results visually for kappa
+ggplot(data = result_rfe, metric = "Kappa") + theme_bw()
+```
 
+### Plot of Feature Importance
 
-## Covid Racial Data Exploration
+The third plot presents Feature Importance for the selected variables, ordered by their contribution to the model. The final selected feature set (shown in `final_vars`) consisted of the top 20 predictors contributing most to model accuracy. This step ensures that only the most informative variables are retained for the final model, improving both interpretability and predictive performance.
 
-This section highlights the cumulative trends of reported COVID-19 cases and deaths across racial groups over time. From April 2020 to March 2021, the data shows significant disparities in both cases and deaths among racial groups.
+```{r}
+# Feature Importance
+var_imp <- data.frame(Variable = names(result_rfe$fit$importance[, 1]),
+  Importance = result_rfe$fit$importance[, 1]) %>% arrange(desc(Importance))
 
+# Visualization
+ggplot(var_imp, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Feature Importance from RFE", x = "Features") +
+  theme_bw()
+```
 
-1. **Cumulative Cases**: 
+### Final features
 
-   - The **White population** consistently recorded the highest cumulative case counts, increasing from **180,379** in April 2020 to over **10.5 million** by March 2021.  
-   - The **Black population** reported the second-highest case counts, followed by the **Asian** and **AIAN** populations.  
-   - Smaller case numbers were observed among the **NHPI** and **Multiracial** groups.  
+A total of 22 features were selected for subsequent model building
 
 
 ```{r}
+# Final Features
+print(paste("Final features selected:", length(final_vars)))
 
 ```
 
-2. **Cumulative Deaths**:
+## Addressing Claa Imbalance using SMOTE
 
-   - Similar trends are observed for deaths, with the **White population** showing the highest cumulative deaths, rising from **19,661** in April 2020 to nearly **300,000** by March 2021.  
-   - The **Black population** also faced a significant burden of deaths, followed by the **Asian** and **AIAN** groups.  
-   - The death toll was relatively lower among the **NHPI** and **Multiracial** populations, yet still significant given their smaller population sizes.
+This next step focused on using **SMOTE (Synthetic Minority Over-sampling Technique)** to address class imbalance in the outcome variable `LET_IS`. The process began by selecting the final features identified through RFE, and creating a cleaned training dataset (`train_final`) that included only these features and the outcome variable.
+
+Next, variable formats were harmonized in preparation for SMOTE:
+
+-  **Ordered categorical variables** were converted to numeric values to preserve their rank order.
+-  **Binary categorical variables** were transformed into 0/1 numeric indicators.
+-  The original factor levels were stored to allow for conversion back to interpretable labels after SMOTE.
+
+A **`recipe`** was defined to apply SMOTE (with an oversampling ratio of 0.7) and to drop any rows with missing values. After prepping and baking the recipe, the `train_balanced` dataset was generated, now with a more balanced distribution of the outcome (`Alive`: 59%, `Dead`: 41%).
+
+Finally, the transformed numeric variables were **converted back to their original factor levels** using the stored labels, ensuring data interpretability was retained post-balancing. A structural and summary check confirmed that the dataset was clean (no NAs) and ready for model training.
 
 
 
-```{r}
+```{r, results='hide'}
+# Create Final Dataset
+train_final <- train_data_std[, c(final_vars, "LET_IS")]
 
+# Save cleaned data
+write_csv(train_final, "Data/train_final.csv")
+
+# 1. First, ensure all variables are in the correct format before SMOTE
+# Make a copy of the original data to preserve factor levels
+train_data_clean <- train_final
+
+# Convert ordered factors to numeric (preserving order)
+ordered_vars_smote <- c("ZSN_A", "ant_im", "TIME_B_S", "IBS_POST", "lat_im",
+                  "NA_R_1_n", "STENOK_AN", "DLIT_AG")
+for(var in ordered_vars_smote) {
+  train_data_clean[[var]] <- as.numeric(train_data_clean[[var]])
+}
+
+# Convert binary factors to numeric (0/1)
+binary_vars_smote <- c("K_SH_POST", "NITR_S", "n_p_ecg_p_12", "ASP_S_n", "IM_PG_P", 
+                 "zab_leg_02", "ritm_ecg_p_01", "endocr_02", "ANT_CA_S_n",
+                 "ritm_ecg_p_02")
+for(var in binary_vars_smote) {
+  train_data_clean[[var]] <- as.numeric(train_data_clean[[var]]) - 1
+}
+
+# 2. Store original factor levels for later conversion back
+original_labels <- list()
+for(var in c(ordered_vars_smote, binary_vars_smote)) {
+  original_labels[[var]] <- levels(train_final[[var]])
+}
+
+# 3. Apply SMOTE with careful preprocessing
+smote_recipe <- recipe(LET_IS ~ ., data = train_data_clean) %>%
+  step_smote(LET_IS, over_ratio =0.7, skip = FALSE) %>%
+  # Ensure no NAs are introduced
+  step_naomit(all_predictors(), skip = FALSE)
+
+# 4. Prepare and bake the recipe
+prepped_recipe <- prep(smote_recipe, training = train_data_clean)
+train_balanced <- bake(prepped_recipe, new_data = NULL)
+
+# 5. Verify no NAs exist
+if(any(is.na(train_balanced))) {
+  warning("NAs detected after SMOTE!")
+  print(colSums(is.na(train_balanced))[colSums(is.na(train_balanced)) > 0])
+} else {
+  message("No NAs detected after SMOTE - proceeding with conversion back to factors")
+}
+
+# 6. Convert numeric values back to original factors with labels
+for(var in ordered_vars_smote) {
+  if(var %in% names(train_balanced)) {
+    train_balanced[[var]] <- factor(
+      round(train_balanced[[var]]), # SMOTE may produce fractional values for ordered factors
+      levels = 1:length(original_labels[[var]]),
+      labels = original_labels[[var]],
+      ordered = TRUE
+    )
+  }
+}
+
+for(var in binary_vars_smote) {
+  if(var %in% names(train_balanced)) {
+    train_balanced[[var]] <- factor(
+      ifelse(train_balanced[[var]] > 0.5, 1, 0), # Ensure binary values
+      levels = 0:1,
+      labels = original_labels[[var]]
+    )
+  }
+}
+
+# 7. Final verification
+str(train_balanced)
+summary(train_balanced)
+prop.table(table(train_balanced$LET_IS))
+
+#     Alive      Dead 
+# 0.5884774   0.4115226 
 ```
 
-It is essential to plot **rates** instead of raw counts when analyzing public health metrics like COVID-19 cases, deaths, hospitalizations, and testing because rates provide a more accurate and fair comparison across groups. Different racial or demographic groups have varying population sizes, and raw counts can misrepresent the true burden of disease if one group is significantly larger than another. By normalizing counts to a standard unit (e.g., per 100,000 people), rates adjust for population size differences, ensuring meaningful and equitable comparisons. Thus, for the next section, we compare rates of cases, deaths, hospitalizations and tests by racial groups.
 
-### Rates of Cases and Deaths
-
-
-The analysis of COVID-19 case and death rates by racial group provides insight into the disparities in disease burden among various populations. Cumulative case rates per 100,000 reveal significant differences, with Native Hawaiian and Pacific Islander (NHPI) and Black populations experiencing the highest case rates throughout the observed period. White and Asian groups demonstrated relatively lower case rates, while Multiracial and American Indian/Alaska Native (AIAN) groups had intermediate trends. These patterns suggest the uneven distribution of COVID-19 exposure and reporting across racial groups.
-
-```{r}
-
-```
-
-```{r, fig.width=8, fig.height=6}
-
-```
-
-When examining death rates per 100,000, the disparities are similarly pronounced, though with distinct patterns. The Black population exhibited the highest cumulative death rates, followed closely by NHPI and AIAN groups. White, Asian, and Multiracial groups showed relatively lower cumulative death rates. The trends observed underscore the disproportionate impact of COVID-19 on historically under-served and marginalized populations, likely driven by a combination of socioeconomic, healthcare access, and comorbidity factors. Visualizations further highlight these disparities over time, emphasizing the need for targeted public health interventions to mitigate these inequities.
-
-```{r}
-
-```
-
-
-```{r, fig.width=8, fig.height=6}
-
-```
-
-
-### Rates of Hospitalizations and Tests
-
-Similarly, the analysis below highlights cumulative monthly hospitalization and testing rates for COVID-19 across racial groups in the United States. The hospitalization rates (per 100,000) reveal significant disparities, with Black, NHPI (Native Hawaiian and Pacific Islander), and AIAN (American Indian/Alaska Native) populations consistently showing the highest rates throughout the observed period. By contrast, the Multiracial group had consistently lower hospitalization rates. 
-
-```{r, fig.width=9, fig.height=7}
-
-```
-
-
-Testing rates display a similar trend, with NHPI and Black groups recording the highest cumulative testing rates, while the Multiracial group remained significantly lower. These trends emphasize the disproportionate burden of hospitalizations and varied access or uptake of COVID-19 testing across racial groups, underscoring ongoing health inequities that may contribute to differential outcomes during the pandemic.
-
-
-```{r, fig.width=8, fig.height=6}
-
-```
-
-
-<blockquote style="font-size: 1.4em; font-style: italic; font-weight: bold; color: #555555; margin-top: 20px; margin-bottom: 20px; border-left: 4px solid #cccccc; padding-left: 15px;">
-“What are the relationships between COVID-19 case rates and key predictors: testing rates, hospitalization rates, and death rates across different racial groups, and do these predictors explain disparities in case rates among racial groups over time?”
-</blockquote>
-
-
-Finally, in this section, we conduct a linear regression analysis to identify and quantify the relationships between the **COVID-19 case rates** (dependent variable) and key predictors (independent variables) across different **racial groups** over time. The goal of this model is to understand:
-
-1. **How Testing Rates, Hospitalization Rates, and Death Rates Relate to Case Rates**:
-   - Does an increase in testing rates correlate with higher case rates?  
-   - Are hospitalization rates or death rates indicators of the severity or extent of infections?  
-2. **Differences Across Racial Groups**:
-   - By including `racial_group` as a categorical variable, the model accounts for differences in case rates across racial groups.  
-   - This allows us to see if certain racial groups are more impacted when adjusting for predictors like testing, hospitalization, and death rates.  
-
-**Model Specification**
-
-The linear regression model is specified as follows:
-
-$$
-\text{Case Rate} = \beta_0 + \beta_1 (\text{Testing Rate}) + \beta_2 (\text{Hospitalized Rate}) + \beta_3 (\text{Death Rate}) + \beta_4 (\text{Racial Group}) + \epsilon
-$$
-
-```{r}
-
-```
-
-
-The results of the linear regression model demonstrate that **testing rates**, **hospitalization rates**, and **death rates** are significant predictors of COVID-19 case rates, explaining over **94% of the variability** (Adjusted R-squared = 0.9416). A positive relationship was observed between testing rates and case rates, suggesting that increased testing identifies more COVID-19 cases, as expected. Testing is critical for case detection, particularly in underrepresented communities.. Similarly, higher hospitalization and death rates were associated with increased case rates. This strong and positive association may reflect the severity of COVID-19 cases where higher hospitalization rates correlate with increased case identification. It could also reflect a lagging relationship, where severe illness leads to more comprehensive testing.
-The significant association between death rates and cases rates underscores that higher death rates often occur alongside higher case rates. This trend could reflect regions with higher COVID-19 transmission or communities with limited access to early interventions.
-
-
-The racial group predictors estimate how COVID-19 case rates differ among racial groups relative to a reference category (AIAN).  Compared to the AIAN, **Multiracial**, **Asian**, and **Black communities** experienced notably higher case rates, possibly indicating systemic inequities that may stem from limited access to healthcare, socioeconomic vulnerabilities, and other social determinants of health.  While the **White** racial group had significant higher case rates,the disparity here may not be as pronounced as in some other racial groups. The **NHPI group** showed a lower case rate. This result contrasts with trends seen in other groups and may reflect differences in reporting, access to testing, or population size considerations.
 
 
 <div style="text-align: center; margin-top: 20px;">
@@ -624,52 +842,699 @@ The racial group predictors estimate how COVID-19 case rates differ among racial
 </div>
 
 
+# Models
+
+
+## Logistic Regression
+
+```{r}
+# 1. Run logistic model
+set.seed(123)
+default_glm_mod <- train(form = LET_IS ~ .,
+  data = train_balanced, 
+  trControl = trainControl(method = "repeatedcv", number = 10, repeats = 10,  
+                           allowParallel = FALSE),
+  method = "glm", family = "binomial")
+
+default_glm_mod
+
+```
+
+
+## Gradient Boosting Machine (GBM)
+
+
+
+```{r, eval=FALSE}
+# 2. Enable parallel processing for GBM Tuning----------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))  # Ensure cluster stops on exit
+
+# Data preparation -----------------------------------------------------------
+# Convert target variable to 0/1 binary format
+train_balanced_2 <- train_balanced %>%
+  mutate(LET_IS = as.numeric(LET_IS) - 1)
+
+
+# Initial GBM tuning ----------------------------------------------------------
+# Find optimal number of trees using cross-validation
+set.seed(123)
+gbm_tune <- gbm(formula = LET_IS ~ ., data = train_balanced_2,
+  distribution = "bernoulli", n.trees = 3000, shrinkage = 0.01,
+  cv.folds = 10, verbose = FALSE)
+
+# Identify optimal iteration
+best_iter <- gbm.perf(gbm_tune, method = "cv", plot.it = FALSE)
+cat("Optimal number of trees:", best_iter, "\n")
+
+# Caret model training --------------------------------------------------------
+# Configure repeated cross-validation
+fit_control <- trainControl(method = "repeatedcv", number = 10, repeats = 10,
+  allowParallel = TRUE)
+
+# Train final model with caret
+set.seed(123)
+caret_gbm <- train(LET_IS ~ ., data = train_balanced, method = "gbm",
+  trControl = fit_control, verbose = FALSE, 
+  tuneGrid = data.frame(.n.trees = best_iter, .interaction.depth = 1,
+                        .shrinkage = 0.01, .n.minobsinnode = 1))
+
+# Save model -------------------------------------------------------------------
+saveRDS(caret_gbm, "gbm_model.rds")
+```
+```{r}
+# Output results
+print(readRDS("gbm_model.rds"))
+```
+
+## k-Nearest Neighbors (kNN)
+
+
+```{r, eval=FALSE}
+# 3. Parallel Processing Setup for KNN -----------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))  # Ensure cluster cleanup on exit
+
+# KNN Model Tuning ------------------------------------------------------------
+set.seed(123)  # Reproducibility seed
+
+# Configure cross-validation
+knn_control <- trainControl(method = "repeatedcv", number = 10, repeats = 10,
+                            allowParallel = TRUE)
+
+# Train KNN model with automatic tuning
+knn_model <- train(LET_IS ~ ., data = train_balanced, method = "knn",
+                   trControl = knn_control, tuneLength = 20)
+
+# Save model -----------------------------------------------------------
+saveRDS(knn_model, "knn_model.rds")
+
+```
+
+```{r}
+# Output results
+print(readRDS("knn_model.rds"))
+```
+
+
+## Bagged Decision Tree
+
+
+```{r, eval=FALSE}
+# 4. Parallel Processing Setup for bagged tree ---------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))  # Ensure cluster cleanup on exit
+
+# Model Configuration ---------------------------------------------------------
+set.seed(123)  # Reproducibility seed
+
+tree_control <- trainControl(method = "repeatedcv", number = 10,
+  repeats = 10, allowParallel = TRUE)
+
+# Bagged Tree Training --------------------------------------------------------
+bagged_tree_model <- train(LET_IS ~ ., data = train_balanced, method = "treebag",
+                           nbagg = 10,  # Number of bootstrap aggregates
+                           trControl = tree_control, 
+                           importance = TRUE)  # Calculate variable importance
+
+
+# Model Persistence -----------------------------------------------------------
+saveRDS(bagged_tree_model, "bagged_tree_model.rds")
+
+```
+```{r}
+# Output results
+print(readRDS("bagged_tree_model.rds"))
+```
+
+
+## XGBoost
+
+```{r, eval=FALSE}
+
+# 5. Parallel Processing Setup for XGBOOST-----------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))  # Ensure cluster cleanup
+
+# Configure Cross-Validation --------------------------------------------------
+xgb_control <- trainControl(method = "repeatedcv", number = 10, repeats = 10, 
+                            savePredictions = TRUE, classProbs = TRUE,
+                            allowParallel = TRUE)
+
+# Hyperparameter Grid ---------------------------------------------------------
+hyper_grid <- expand.grid(eta = 0.1, colsample_bytree = c(0.5, 0.7, 1),
+                          max_depth = c(5, 10, 15), nrounds = 100,  gamma = 0,
+                          min_child_weight = 1, subsample = 0.5)
+
+# Model Training --------------------------------------------------------------
+set.seed(123)  # Reproducibility
+xgb_model <- train(LET_IS ~ ., data = train_balanced, method = "xgbTree",
+                   trControl = xgb_control, tuneGrid = hyper_grid,
+                   verbosity = 0)  # Suppress xgboost warnings
+
+# Save Model--------------------------------------------------------------------
+saveRDS(xgb_model, paste0("xgb_model.rds"))
+```
+
+```{r}
+# Output results
+print(readRDS("xgb_model.rds"))
+```
+
+
+## Random Forest
+
+```{r, eval=FALSE}
+# 6. Random Forest Tuning --------------------------------------------------------
+
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))  
+
+# Model Configuration ---------------------------------------------------------
+set.seed(123)  
+
+rf_control <- trainControl(method = "repeatedcv", number = 10, repeats = 10,
+  allowParallel = TRUE)
+
+# Random Forest Training ------------------------------------------------------
+rf_model <- train(LET_IS ~ .,
+  data = train_balanced, method = "rf", trControl = rf_control,
+  importance = TRUE, verbose = FALSE)
+
+# Model Output ----------------------------------------------------------------
+print(rf_model)
+
+# Model Persistence -----------------------------------------------------------
+saveRDS(rf_model, paste0("rf_model.rds"))
+
+```
+```{r}
+# Output results
+print(readRDS("rf_model.rds"))
+```
+
+
+## STACKING in TRAINING DATA
+
+In this step, multiple machine learning models were trained on the balanced dataset using a stacked ensemble approach to improve prediction accuracy for the binary outcome `LET_IS`. Six base models were specified—GLM, GBM, KNN, Bagged Trees, XGBoost, and Random Forest—with optimal hyperparameters based on prior tuning applied where required. A repeated 10-fold cross-validation strategy ensured robust performance evaluation, and parallel processing was utilized to speed up computation. All models were trained using the `caretList()` function, and the resulting ensemble was saved for downstream analysis. Average Model performance metrics; Accuracy and Kappa were then summarized and compared across algorithms.
+
+
+```{r, eval=FALSE}
+set.seed(123)  # Global seed for reproducibility
+
+# Update trainControl
+ctrl <- trainControl( method = "repeatedcv", number = 10, repeats = 10,
+  savePredictions = TRUE, classProbs = TRUE)
+
+### 2. Validate Tuning Grids ###
+best_params <- list(
+  gbm = data.frame(n.trees = 2997, interaction.depth = 1, 
+                  shrinkage = 0.01, n.minobsinnode = 1),
+  knn = data.frame(k = 5),
+  xgb = data.frame(nrounds = 100, max_depth = 15, eta = 0.1,
+                  gamma = 0, colsample_bytree = 0.7, 
+                  min_child_weight = 1, subsample = 0.5),
+  rf = data.frame(mtry = 27)
+)
+
+### 3. CORRECT Model Specifications 
+model_list <- list(
+  glm = caretModelSpec(method = "glm"),  # No tuning needed
+  gbm = caretModelSpec(method = "gbm", tuneGrid = best_params$gbm),
+  knn = caretModelSpec(method = "knn", tuneGrid = best_params$knn),
+  bagged = caretModelSpec(method = "treebag"),  # No tuning parameters
+  xgb = caretModelSpec(method = "xgbTree", tuneGrid = best_params$xgb),
+  rf = caretModelSpec(method = "rf", tuneGrid = best_params$rf)
+)
+
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))
+
+ensemble_train <- caretList(LET_IS ~ ., data = train_balanced,
+                            trControl = ctrl, tuneList = model_list)
+
+# Save Model -----------------------------------------------------------
+saveRDS(ensemble_train, paste0("ensemble_train_model.rds"))
+```
+
+From the output results, we can see from the correlation table results that none of the individual ML algorithm predictions are highly correlated. Very highly correlated results mean that the algorithms have produced very similar predictions. Combining the very similar predictions may not really yield significant benefit compared with what one would avail from accepting the individual predictions. In this specific case, we can observe that none of the algorithm predictions are highly correlated so we can straightforwardly move to the next step of stacking the predictions:
+
+
+```{r, out.width="100%"}
+# Get results with all metrics
+ensemble_train <- readRDS("ensemble_train_model.rds")
+results <- resamples(ensemble_train)
+summary(results)
+
+
+# Identifying the correlation between results
+modelCor(results)
+
+```
+
+
+
+
+
+### Stacking with Generalized Linear Model (GLM)
+
+In this step, a **stacked ensemble model** was constructed using a **Generalized Linear Model (GLM)** as the meta-learner to combine predictions from previously trained base models. The process began with setting up parallel processing for efficiency and defining a **custom summary function** that extended model evaluation metrics to include ROC, Accuracy, Precision, F1 Score, False Positive Rate (FPR), and False Negative Rate (FNR). A robust cross-validation framework (10-fold repeated 10 times) was specified via `trainControl` to guide the stacking process while saving final predictions and class probabilities. Using `caretStack()`, the GLM was then trained on the outputs of six base learners (`ensemble_train`), serving as a meta-model to optimally combine their strengths. The final stacked model object (`stack.glm`) was saved and printed to examine its overall performance. 
+
+
+```{r, eval=FALSE}
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))
+
+# Create custom summary function that includes both ROC and Accuracy
+customSummary <- function(data, lev = NULL, model = NULL) {
+  # Convert probabilities to class predictions
+  pred <- factor(ifelse(data$Dead > 0.5, "Dead", "Alive"),
+                 levels = c("Alive", "Dead"))
+  
+  # Create confusion matrix
+  cm <- confusionMatrix(pred, data$obs)
+  
+  # Calculate additional metrics
+  metrics <- c(
+    twoClassSummary(data, lev, model),  # ROC, Sens, Spec
+    defaultSummary(data, lev, model),    # Accuracy, Kappa
+    Precision = cm$byClass["Precision"],
+    FPR = 1 - cm$byClass["Specificity"],
+    FNR = 1 - cm$byClass["Sensitivity"],
+    F1 = cm$byClass["F1"]
+  )
+  
+  return(metrics)
+}
+
+# Setting up the cross validation control parameters for stacking the predictions from individual ML algorithms
+stackControl <- trainControl(method="repeatedcv", number=10, repeats=10,
+                             summaryFunction = customSummary,
+                             savePredictions= "final", classProbs=TRUE)
+
+set.seed(123)
+
+# ------------------------------------------------------------------------------
+# Stacking Models using GLM (Generalized Linear Model)
+# ------------------------------------------------------------------------------
+stack.glm <- caretStack(
+    ensemble_train,          # List of trained models from caretList
+    method = "glm",    # Meta-model: GLM for stacking
+    trControl = stackControl   # Apply the control parameters
+)
+
+# Save Model -----------------------------------------------------------
+saveRDS(stack.glm, paste0("stack.glm.rds"))
+```
+
+
+With GLM-based stacking on the training data, we have 94.62% accuracy. 
+
+
+```{r}
+# ----------------------------------
+# Print Final Stacked Model Results 
+# ----------------------------------
+print(readRDS("stack.glm.rds"))
+
+```
+
+
+
+
+
+
+### Stacking with Random Forest (RF)
+
+Next, we examine the effect of using random forest modeling instead of GLM to stack the individual predictions from each of the five ML algorithms on the observations:
+
+
+```{r, eval=FALSE}
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))
+
+set.seed(123)
+
+# -------------------------------
+# Stacking Models using Random Forest (RF)
+# -------------------------------
+stack.rf <- caretStack(
+    ensemble_train,          # List of trained models from caretList
+    method = "rf",     # Meta-model: Random Forest for stacking
+    trControl = stackControl,  # Apply the control parameters
+)
+
+# Save Model -----------------------------------------------------------
+saveRDS(stack.rf, paste0("stack.rf.rds"))
+```
+
+With Random Forest based stacking on the training data, we have 95.11% accuracy. 
+
+```{r}
+# -------------------------------
+# Print Final Stacked Model Results 
+# -------------------------------
+print(readRDS("stack.rf.rds"))
+
+```
+
+
+## STACKING IN THE TEST DATA
+
+
+We first did a subset of the 30% test data using the final reduced features obtained after lasso and recursive feature elimination.
+
+
+```{r}
+# Select final features and standardize using training parameters
+final_vars <- predictors(result_rfe)
+continuous_in_final <- intersect(final_vars, continuous_vars)
+
+test_processed <- test_data %>%
+  dplyr::select(all_of(final_vars), LET_IS) %>%
+  mutate(across(all_of(continuous_in_final), 
+         ~ (.x - mean_sd[[paste0(cur_column(), "_mean")]]) / 
+           mean_sd[[paste0(cur_column(), "_sd")]])) 
+
+
+```
+
+
+Next, we trained the stacked ensemble models on the test data as done in the previous section
+
+```{r, eval=FALSE}
+set.seed(123)  # Global seed for reproducibility
+
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))
+
+ensemble_test <- caretList(LET_IS ~ ., data = test_processed,
+                            trControl = ctrl, tuneList = model_list)
+
+# Save Model -----------------------------------------------------------
+saveRDS(ensemble_test, paste0("ensemble_test_model.rds"))
+```
+
+
+
+
+
+### Stacking with Generalized Linear Model (GLM) in the Test Data
+
+
+We trained the stacked ensemble model using `GLM` as meta-learner to combine predictions from previously trained base models.
+
+
+```{r, eval=FALSE}
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))
+
+set.seed(123)
+
+# ------------------------------------------------------------------------------
+# Stacking Models using GLM (Generalized Linear Model)
+# ------------------------------------------------------------------------------
+stack.glm.test <- caretStack(
+    ensemble_test,             # List of trained models from caretList
+    method = "glm",            # Meta-model: GLM for stacking
+    trControl = stackControl   # Apply the control parameters
+)
+
+# Save Model -----------------------------------------------------------
+saveRDS(stack.glm.test, paste0("stack.glm.test.rds"))
+```
+
+
+
+With GLM-based stacking on the test data, we have 94.35% accuracy.
+
+```{r}
+# ----------------------------------
+# Print Final Stacked Model Results 
+# ----------------------------------
+print(readRDS("stack.glm.test.rds"))
+
+```
+
+
+### Stacking with Random Forest (RF) in Test Data
+
+
+Next, we examine the effect of using random forest modeling instead of GLM to stack the individual predictions from each of the five ML algorithms on the observations in the test data.
+
+```{r, eval=FALSE}
+# Parallel Processing Setup ---------------------------------------------------
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+on.exit(stopCluster(cl))
+
+set.seed(123)
+
+# -------------------------------
+# Stacking Models using Random Forest (RF)
+# -------------------------------
+stack.rf.test <- caretStack(
+    ensemble_test,          # List of trained models from caretList
+    method = "rf",     # Meta-model: Random Forest for stacking
+    trControl = stackControl,  # Apply the control parameters
+)
+
+# Save Model -----------------------------------------------------------
+saveRDS(stack.rf.test, paste0("stack.rf.test.rds"))
+```
+
+
+With Random Forest based stacking on the test data, we have 94.35% accuracy.
+
+```{r}
+# -------------------------------
+# Print Final Stacked Model Results 
+# -------------------------------
+print(readRDS("stack.rf.test.rds"))
+
+```
+
+<div style="text-align: center; margin-top: 20px;">
+  <a href="#top" style="text-decoration: none; background-color: #007BFF; color: white; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Back to Top</a>
+</div>
+
+
+# Performance
+
+## Performance in Training Data
+
+In this stage of the project, we evaluated the predictive performance of each individual machine learning model trained during cross-validation, as well as the final stacked ensemble models. We created a custom evaluation function (`compute_metrics`) to calculate key classification metrics—Accuracy, Sensitivity, Specificity, Precision, False Positive Rate (FPR), False Negative Rate (FNR), F1 Score, and Area Under the Curve (AUC)—based on predicted and observed class labels. These metrics were computed for each model in the ensemble and summarized into a final performance table. We also incorporated performance metrics for the stacked models (Stacked GLM and Stacked Random Forest), which had been trained using the predictions from individual learners. The final results are presented in a formatted summary table to facilitate comparison across all models.
+
+
+```{r}
+# Function to Calculate Metrics -----------------------------------------------
+compute_metrics <- function(pred_df, positive_class = "Dead") {
+  # Convert to factors with explicit levels
+  pred_df$obs <- factor(pred_df$obs, levels = c("Alive", "Dead"))
+  pred_df$pred <- factor(pred_df$pred, levels = c("Alive", "Dead"))
+  
+  # Calculate confusion matrix
+  cm <- confusionMatrix(pred_df$pred, pred_df$obs, positive = positive_class)
+  
+  # Calculate AUC
+  roc_obj <- roc(response = pred_df$obs,
+                 predictor = pred_df[[positive_class]],
+                 levels = c("Alive", "Dead"))
+  
+  # Return metrics
+  data.frame(
+    Accuracy = cm$overall["Accuracy"],
+    Sensitivity = cm$byClass["Sensitivity"],
+    Specificity = cm$byClass["Specificity"],
+    Precision = cm$byClass["Precision"],
+    FPR = 1 - cm$byClass["Specificity"],  # False Positive Rate
+    FNR = 1 - cm$byClass["Sensitivity"],  # False Negative Rate
+    F1 = cm$byClass["F1"],
+    AUC = as.numeric(auc(roc_obj)))
+}
+
+# Calculate Metrics for All Models --------------------------------------------
+model_metrics <- map_dfr(names(ensemble_train), function(model_name) {
+  ensemble_train[[model_name]]$pred %>%
+    compute_metrics() %>%
+    mutate(Model = toupper(model_name)) %>%
+    dplyr::select(Model, everything())
+})
+
+# Create Final Table ----------------------------------------------------------
+final_table <- model_metrics %>%
+  group_by(Model) %>%
+  summarise(across(where(is.numeric), ~ mean(., na.rm = TRUE))) %>%
+  transmute(
+    Model,
+    Accuracy = round(Accuracy, 6),
+    Sensitivity = round(Sensitivity, 6),
+    Specificity = round(Specificity, 6),
+    Precision = round(Precision, 6),
+    FPR = round(FPR, 6),
+    FNR = round(FNR, 6),
+    F1  = round(F1, 6),
+    AUC = round(AUC, 6)
+  ) %>%
+  arrange(Accuracy)
+
+# Add stacked model metrics from resampling results
+stacked_train <- data.frame(
+  Model = c("Stacked GLM", "Stacked Random Forest"),
+  Accuracy = c(0.946209, 0.951089),
+  Sensitivity = c(0.954154, 0.966041),  
+  Specificity = c(0.934857, 0.929714),
+  Precision =  c(0.954840, 0.952044), 
+  FPR = c(0.0651428, 0.0702857),       
+  FNR = c(0.0458455, 0.0335604),      
+  F1 = c( 0.954305, 0.959013),       
+  AUC = c(0.987387, 0.984283))
+
+# Combine and sort
+full_metrics <- bind_rows(final_table, stacked_train) %>%
+  arrange(Accuracy)
+
+full_metrics %>%
+  kable(align = 'c', 
+        caption = "Model Performance Comparison in the Training Set",
+        col.names = c("Model", "Accuracy", "Sensitivity", "Specificity",
+                      "Precision", "FPR", "FNR", "F1 Score", "AUC")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), 
+                full_width = FALSE,
+                font_size = 18) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#2c3e50")
+```
+
+
+## Performance in Test Data
+
+Similarly, we evaluated the performance on the test data, with results shown below:
+
+```{r}
+ensemble_test <- readRDS("ensemble_test_model.rds")
+# Calculate Metrics for All Models --------------------------------------------
+model_metrics_test <- map_dfr(names(ensemble_test), function(model_name) {
+  ensemble_test[[model_name]]$pred %>%
+    compute_metrics() %>%
+    mutate(Model = toupper(model_name)) %>%
+    dplyr::select(Model, everything())
+})
+
+# Create Final Table ----------------------------------------------------------
+final_table_test <- model_metrics_test %>%
+  group_by(Model) %>%
+  summarise(across(where(is.numeric), ~ mean(., na.rm = TRUE))) %>%
+  transmute(
+    Model,
+    Accuracy = round(Accuracy, 6),
+    Sensitivity = round(Sensitivity, 6),
+    Specificity = round(Specificity, 6),
+    Precision = round(Precision, 6),
+    FPR = round(FPR, 6),
+    FNR = round(FNR, 6),
+    F1  = round(F1, 6),
+    AUC = round(AUC, 6)
+  ) %>%
+  arrange(Accuracy)
+
+# Add stacked model metrics from resampling results
+stacked_test <- data.frame(
+  Model = c("Stacked GLM", "Stacked Random Forest"),
+  Accuracy = c(0.871104, 0.876803),
+  Sensitivity = c(0.960044, 0.974042),  
+  Specificity = c(0.401666, 0.362777),
+  Precision =  c(0.895311, 0.890683), 
+  FPR = c(0.598333, 0.637222),       
+  FNR = c(0.039955, 0.0259579),      
+  F1 = c(0.926020, 0.930122),       
+  AUC = c(0.835015,0.813998))
+
+# Combine and sort
+full_metrics_test <- bind_rows(final_table_test, stacked_test) %>%
+  arrange(Accuracy)
+
+full_metrics_test %>%
+  kable(align = 'c', 
+        caption = "Model Performance Comparison in the Test Set",
+        col.names = c("Model", "Accuracy", "Sensitivity", "Specificity",
+                      "Precision", "FPR", "FNR", "F1 Score", "AUC")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), 
+                full_width = FALSE,
+                font_size = 18) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#2c3e50")
+```
+
+
+
+<div style="text-align: center; margin-top: 20px;">
+  <a href="#top" style="text-decoration: none; background-color: #007BFF; color: white; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Back to Top</a>
+</div>
+
 
 # Summary
 
-
+This analysis aimed to develop and evaluate predictive models for a binary health outcome (`LET_IS`) using ensemble stacking techniques.
  
-The COVID-19 pandemic exacerbated existing health disparities in the United States, disproportionately impacting racial and ethnic minority groups. This project aimed to investigate the differential burden of COVID-19 outcomes, including cases, deaths, hospitalizations, and testing rates, across racial and ethnic communities. 
+## Results
+
+- **Training Set Performance:**
+  - *Stacked Random Forest* achieved the highest Accuracy (0.951), F1 Score (0.959), and AUC (0.984).
+  - *Stacked GLM* closely followed with Accuracy = 0.946, F1 Score = 0.954, and AUC = 0.987.
+  - All ensemble models outperformed individual classifiers (e.g., GBM, XGBoost, RF) in terms of **F1 Score** and **Sensitivity**, indicating superior performance in detecting the minority class.
+  - Models such as *GLM*, *KNN*, and *GBM* had comparatively lower Sensitivity and F1 Scores.
+
+- **Test Set Performance:**
+  - *Stacked Random Forest* and *Stacked GLM* showed the best **Sensitivity** (0.974 and 0.960) and **F1 Scores** (0.930 and 0.926).
+  - However, both ensemble models had **high False Positive Rates** (FPR = 0.637 and 0.598), resulting in **lower Specificity** (0.363 and 0.402).
+  - Traditional models like *KNN* and *RF* demonstrated high Specificity (>0.98) but very low Sensitivity (<0.23), failing to identify many true positive cases.
+  - Ensemble models had the highest AUC values (*Stacked GLM*: 0.835, *Stacked RF*: 0.814), indicating strong overall classification ability.
 
 
-To address this problem, I analyzed national-level and state-level COVID-19 data obtained from [**The New York Times COVID-19 dataset**](https://github.com/nytimes/covid-19-data), combined with the [**COVID Racial Data Tracker**](https://covidtracking.com/race) and population estimates from the [**American Community Survey (ACS) Demographic and Housing 5-Year Estimates (2019)**](https://data.census.gov/table/ACSDP5Y2019.DP05). The analysis involved the following steps: 
 
+## Discussion
 
-1. **Data Preparation**: Cleaning, merging, and aggregating the datasets at state and racial group levels to calculate cumulative monthly rates (per 100,000 population) for cases, deaths, hospitalizations, and tests.  
-2. **Exploratory Data Analysis**: Visualizing and summarizing trends to identify disparities across racial groups.  
-3. **Regression Analysis**: A multiple linear regression model examined relationships between case rates and key predictors—testing rates, hospitalization rates, and death rates—while accounting for racial group differences.  
+- ✅ **Support for Hypothesis:**
+  - The results support the hypothesis that **stacking enhances classification performance**, particularly for the minority class in imbalanced datasets.
+  - Ensemble models produced higher **recall (Sensitivity)** and **F1 scores**, which are essential in public health prediction tasks where missing positive cases has serious consequences.
 
-**Key Insights**
+- 🔍 **Key Insights:**
+  - *Stacked models* integrated the strengths of individual classifiers to capture complex relationships in the data.
+  - There is a **trade-off** between high Sensitivity and lower Specificity, particularly evident in the ensemble models.
 
-The analysis revealed significant racial disparities in COVID-19 outcomes: 
+- ⚠️ **Limitations:**
+  - High **False Positive Rates** in stacked models could lead to over-diagnosis or unnecessary follow-ups.
+  - Use of **SMOTE** may have introduced synthetic patterns that reduce model generalizability.
+  - Lack of **external validation** restricts conclusions about model performance on independent datasets.
 
-- **Cases**: The White population had the highest cumulative case counts, but Native Hawaiian/Pacific Islander (NHPI) and Black groups exhibited the highest case rates per 100,000.  
-- **Deaths**: The Black population experienced the highest death rates, followed by NHPI and AIAN groups, highlighting a greater burden of severe outcomes in these communities.  
-- **Hospitalizations**: Hospitalization rates were highest among Black, NHPI, and AIAN populations, reflecting unequal access to early interventions and preventive care.  
-- **Testing**: While NHPI and Black groups had the highest cumulative testing rates, Multiracial populations consistently showed lower testing rates, raising concerns about access to testing resources.  
-- **Regression Analysis**: Testing rates, hospitalization rates, and death rates significantly predicted case rates. Disparities were also observed across racial groups, with the AIAN group serving as the reference category.
-
-**Implications**
-
-These findings highlight the disproportionate burden of COVID-19 on historically marginalized communities. The results emphasize the need for:  
-- **Equitable Resource Allocation**: Increasing access to testing, vaccines, and healthcare services in vulnerable populations.  
-- **Targeted Interventions**: Addressing the underlying social determinants of health, such as housing conditions, employment risks, and healthcare access, to reduce disparities.  
-- **Improved Data Reporting**: Ensuring consistent and disaggregated data collection across racial and ethnic groups to monitor and address inequities effectively.  
-
-**Limitations and Future Directions**  
-
-Despite the insights provided, the analysis has several limitations: 
-
-1. **Data Availability**: Inconsistent reporting across states and racial groups led to missing data, particularly in smaller populations (e.g., Multiracial, NHPI). Future studies could incorporate imputation techniques or use additional data sources as the racial data was limited to April 12, 2020 to March 7, 2021.  
-2. **Population Estimates**: The analysis relied on ACS 2019 population estimates, which may not fully reflect changes in population dynamics during the pandemic. Using updated population data could improve accuracy.  
-3. **Causality**: The regression analysis identifies associations but does not imply causal relationships. 
-4. **Granularity**: This analysis focused on state-level data, which may mask local variations within counties or cities. Incorporating finer geographic data such as the use of the county-level COVID-19 data could provide more nuanced insights.  
-
-Future work could build on this analysis by examining the role of socioeconomic factors (e.g., household income, education levels, poverty rates), vaccination rates, and comorbidities in exacerbating or mitigating COVID-19 disparities. Addressing these limitations will enhance our understanding of health inequities and inform more effective public health strategies.
+- 🔄 **Future Directions:**
+  - **Calibration Check:** Evaluate probability calibration (e.g., with calibration plots or Brier score) to ensure predicted probabilities are meaningful.
+  - Explore **cost-sensitive learning** approaches to reduce the cost of false positives.
+  - Perform **external validation** using real-world datasets to confirm the model’s applicability in practical public health settings.
+  - Feature Importance / Interpretation: Use *SHapley Additive exPlantions (SHAP)* values or permutation importance to understand which features are driving predictions, especially in the stacked model.
+  - Consider Multiple Imputation for missing data. 
+  - Consider a Multitask classification approach for all the 12 outcomes in the dataset.
 
 
 <blockquote style="font-size: 1.8em; font-style: italic; font-weight: bold; color: #555555; margin-top: 20px; margin-bottom: 20px; border-left: 4px solid #cccccc; padding-left: 15px;">
-All codes and datasets for this project can be found at my [GitHub Repository](https://github.com/rophenceojiambo/COVID-19).
+All codes and datasets for this project can be found at my [GitHub Repository](https://github.com/rophenceojiambo/MLPH-Final-Project).
 </blockquote>
 
 # References
