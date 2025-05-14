@@ -1513,31 +1513,35 @@ This analysis aimed to develop and evaluate predictive models for a binary healt
 
 
 ✅ **Support for Hypothesis:**
-  - The results support the hypothesis that **stacking enhances classification performance**, particularly for the minority class in imbalanced datasets.
-  - Ensemble models produced higher **recall (Sensitivity)** and **F1 scores**, which are essential in public health prediction tasks where missing positive cases has serious consequences.
+ 
+- The results support the hypothesis that **stacking enhances classification performance**, particularly for the minority class in imbalanced datasets.
+- Ensemble models produced higher **recall (Sensitivity)** and **F1 scores**, which are essential in public health prediction tasks where missing positive cases has serious consequences.
 
 
 
 🔍 **Key Insights:**
-  - *Stacked models* integrated the strengths of individual classifiers to capture complex relationships in the data.
-  - There is a **trade-off** between high Sensitivity and lower Specificity, particularly evident in the ensemble models.
+  
+- *Stacked models* integrated the strengths of individual classifiers to capture complex relationships in the data.
+- There is a **trade-off** between high Sensitivity and lower Specificity, particularly evident in the ensemble models.
 
 
 
 ⚠️ **Limitations:**
-  - High **False Positive Rates** in stacked models could lead to over-diagnosis or unnecessary follow-ups.
-  - Use of **SMOTE** may have introduced synthetic patterns that reduce model generalizability.
-  - Lack of **external validation** restricts conclusions about model performance on independent datasets.
+
+- High **False Positive Rates** in stacked models could lead to over-diagnosis or unnecessary follow-ups.
+- Use of **SMOTE** may have introduced synthetic patterns that reduce model generalizability.
+- Lack of **external validation** restricts conclusions about model performance on independent datasets.
 
 
 
 🔄 **Future Directions:**
-  - **Calibration Check:** Evaluate probability calibration (e.g., with calibration plots or Brier score) to ensure predicted probabilities are meaningful.
-  - Explore **cost-sensitive learning** approaches to reduce the cost of false positives.
-  - Perform **external validation** using real-world datasets to confirm the model’s applicability in practical public health settings.
-  - Feature Importance / Interpretation: Use *SHapley Additive exPlantions (SHAP)* values or permutation importance to understand which features are driving predictions, especially in the stacked model.
-  - Consider Multiple Imputation for missing data. 
-  - Consider a Multitask classification approach for all the 12 outcomes in the dataset.
+ 
+- **Calibration Check:** Evaluate probability calibration (e.g., with calibration plots or Brier score) to ensure predicted probabilities are meaningful.
+- Explore **cost-sensitive learning** approaches to reduce the cost of false positives.
+- Perform **external validation** using real-world datasets to confirm the model’s applicability in practical public health settings.
+- Feature Importance / Interpretation: Use *SHapley Additive exPlantions (SHAP)* values or permutation importance to understand which features are driving predictions, especially in the stacked model.
+- Consider Multiple Imputation for missing data. 
+- Consider a Multitask classification approach for all the 12 outcomes in the dataset.
 
 
 <blockquote style="font-size: 1.8em; font-style: italic; font-weight: bold; color: #555555; margin-top: 20px; margin-bottom: 20px; border-left: 4px solid #cccccc; padding-left: 15px;">
