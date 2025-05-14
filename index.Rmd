@@ -737,7 +737,7 @@ print(paste("Final features selected:", length(final_vars)))
 
 ```
 
-## Addressing Claa Imbalance using SMOTE
+## Addressing Class Imbalance using SMOTE
 
 This next step focused on using **SMOTE (Synthetic Minority Over-sampling Technique)** to address class imbalance in the outcome variable `LET_IS`. The process began by selecting the final features identified through RFE, and creating a cleaned training dataset (`train_final`) that included only these features and the outcome variable.
 
@@ -1511,20 +1511,27 @@ This analysis aimed to develop and evaluate predictive models for a binary healt
 
 ## Discussion
 
-- ✅ **Support for Hypothesis:**
+
+✅ **Support for Hypothesis:**
   - The results support the hypothesis that **stacking enhances classification performance**, particularly for the minority class in imbalanced datasets.
   - Ensemble models produced higher **recall (Sensitivity)** and **F1 scores**, which are essential in public health prediction tasks where missing positive cases has serious consequences.
 
-- 🔍 **Key Insights:**
+
+
+🔍 **Key Insights:**
   - *Stacked models* integrated the strengths of individual classifiers to capture complex relationships in the data.
   - There is a **trade-off** between high Sensitivity and lower Specificity, particularly evident in the ensemble models.
 
-- ⚠️ **Limitations:**
+
+
+⚠️ **Limitations:**
   - High **False Positive Rates** in stacked models could lead to over-diagnosis or unnecessary follow-ups.
   - Use of **SMOTE** may have introduced synthetic patterns that reduce model generalizability.
   - Lack of **external validation** restricts conclusions about model performance on independent datasets.
 
-- 🔄 **Future Directions:**
+
+
+🔄 **Future Directions:**
   - **Calibration Check:** Evaluate probability calibration (e.g., with calibration plots or Brier score) to ensure predicted probabilities are meaningful.
   - Explore **cost-sensitive learning** approaches to reduce the cost of false positives.
   - Perform **external validation** using real-world datasets to confirm the model’s applicability in practical public health settings.
